@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Administração</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="comum.css">
+<style>
+/* Layout: administração da plataforma. Resumo em números no topo, depois lojas em cartões e usuários em lista. */
+.conteudo { padding-block: 18px 60px; display: grid; gap: 22px; }
+.secao h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.titulo-aba { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.titulo-aba h2 { margin: 0 auto 0 0; font-family: var(--font-display); font-weight: 400; font-size: 26px; }
+
+.tabela { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tabela-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+.tabela th, .tabela td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 14px; }
+.tabela th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--surface); }
+.tabela tr:last-child td { border-bottom: 0; }
+.tabela td.num-c { text-align: right; }
+
+.lojas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: start; }
+.loja { border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 12px; min-width: 0; background: var(--bg); }
+.loja.suspensa { border-color: var(--danger); }
+.loja-top { display: flex; align-items: center; gap: 10px; }
+.loja-top strong { font-size: 18px; display: block; }
+.loja-top small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.selos { display: flex; gap: 6px; flex-wrap: wrap; }
+.linha-info { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 4px 10px; font-size: 14px; align-items: center; }
+.linha-info dt { color: var(--muted); font-weight: 600; }
+.linha-info dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn.mini { padding: 8px 11px; font-size: 13px; border-radius: 9px; }
+.dono-form { display: flex; gap: 8px; }
+.dono-form input { flex: 1; min-width: 0; padding: 9px 10px; font-size: 15px; }
+.editor { border: 1px solid var(--dark); border-radius: 16px; padding: 16px; display: grid; gap: 12px; background: var(--surface); }
+.editor h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.prefixo { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); overflow: hidden; }
+.prefixo span { padding-left: 12px; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.prefixo input { border: 0; border-radius: 0; padding-left: 2px; }
+.check { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="state" id="carregando">Carregando…</div>
+
+<div id="tela" hidden>
+  <header class="topo">
+    <div class="wide linha">
+      <div class="quem">
+        <div class="mark sm" aria-hidden="true">AD</div>
+        <div style="min-width:0"><strong>Administração</strong><small id="quem-email"></small></div>
+      </div>
+      <div class="acoes-topo">
+        <a class="btn" href="minha-conta.html">Minha conta</a>
+        <button class="btn" type="button" id="sair">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Seções da administração">
+    <div class="wide" role="tablist">
+      <button class="tab" role="tab" type="button" id="tab-geral" aria-selected="true" aria-controls="aba-geral">Visão geral</button>
+      <button class="tab" role="tab" type="button" id="tab-lojas" aria-selected="false" aria-controls="aba-lojas">Lojas</button>
+      <button class="tab" role="tab" type="button" id="tab-usuarios" aria-selected="false" aria-controls="aba-usuarios">Usuários</button>
+    </div>
+  </nav>
+
+  <main class="wide conteudo" id="aba-geral" role="tabpanel" aria-labelledby="tab-geral">
+    <div class="numeros" id="numeros"></div>
+    <section class="secao">
+      <h2>Lojas</h2>
+      <div class="tabela-wrap">
+        <table class="tabela">
+          <thead><tr><th>Loja</th><th>Situação</th><th class="num-c">Pedidos hoje</th><th class="num-c">Vendas hoje</th><th class="num-c">Vendas no mês</th><th>Mensalidade</th></tr></thead>
+          <tbody id="tabela-lojas"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <main class="wide conteudo" id="aba-lojas" role="tabpanel" aria-labelledby="tab-lojas" hidden>
+    <div class="titulo-aba"><h2>Lojas</h2><button class="btn" type="button" id="nova-loja">Nova loja</button></div>
+    <div id="form-area"></div>
+    <div class="lojas" id="lojas"></div>
+  </main>
+
+  <main class="wide conteudo" id="aba-usuarios" role="tabpanel" aria-labelledby="tab-usuarios" hidden>
+    <div class="titulo-aba"><h2>Usuários</h2></div>
+    <p class="hint">Toda conta nova começa como freguês. Para transformar alguém em lojista, ligue o e-mail da pessoa a uma loja na aba Lojas.</p>
+    <div class="tabela-wrap">
+      <table class="tabela">
+        <thead><tr><th>E-mail</th><th>Nome</th><th>Papel</th><th>Lojas</th><th class="num-c">Pedidos</th><th>Desde</th></tr></thead>
+        <tbody id="tabela-usuarios"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="comum.js"></script>
+<script>
+(async function () {
+  var A = window.APP, $ = A.$, fmt = A.fmt, esc = A.esc, db = A.db;
+  var eu = await A.exigir(['admin']);
+  if (!eu) return;
+  $('quem-email').textContent = eu.email;
+  $('sair').addEventListener('click', function () { A.sair(); });
+  var LOJAS = [], editando = null, confirma = null;
+
+  function hojeISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function dataBR(iso) { if (!iso) return ''; var p = iso.slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+  function mensal(l) {
+    if (!Number(l.mensalidade)) return ['Sem cobrança', 'off'];
+    if (!l.pago_ate) return ['Nunca pago', 'warn'];
+    return l.pago_ate >= hojeISO() ? ['Em dia até ' + dataBR(l.pago_ate), 'ok'] : ['Vencida desde ' + dataBR(l.pago_ate), 'bad'];
+  }
+  function linkLoja(l) { return new URL('index.html?loja=' + encodeURIComponent(l.slug), location.href).href; }
+  function slugDe(nome) {
+    return A.semAcento(String(nome || '').toLowerCase()).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  }
+  function erroDe(x) { return x && x.error ? (x.error.message || 'Algo deu errado.') : null; }
+
+  async function carregar() {
+    var x = await db.rpc('admin_resumo');
+    if (x.error) { $('carregando').innerHTML = '<strong>Não foi possível carregar.</strong><span>' + esc(x.error.message) + '</span>'; return false; }
+    LOJAS = x.data || [];
+    renderGeral();
+    renderLojas();
+    return true;
+  }
+
+  // ---------- Visão geral ----------
+  function renderGeral() {
+    var ativas = LOJAS.filter(function (l) { return l.ativa; });
+    var soma = function (k, lista) { return (lista || LOJAS).reduce(function (s, l) { return s + Number(l[k] || 0); }, 0); };
+    var atrasadas = ativas.filter(function (l) { return mensal(l)[1] === 'bad' || mensal(l)[1] === 'warn'; }).length;
+    $('numeros').innerHTML =
+      '<div class="num"><span>Lojas ativas</span><strong>' + ativas.length + '</strong></div>' +
+      '<div class="num"><span>Pedidos hoje</span><strong>' + soma('pedidos_hoje') + '</strong></div>' +
+      '<div class="num"><span>Vendas hoje</span><strong>' + fmt(soma('faturamento_hoje')) + '</strong></div>' +
+      '<div class="num"><span>Vendas no mês</span><strong>' + fmt(soma('faturamento_mes')) + '</strong></div>' +
+      '<div class="num"><span>Sua receita mensal</span><strong>' + fmt(soma('mensalidade', ativas)) + '</strong></div>' +
+      '<div class="num"><span>Mensalidades pendentes</span><strong>' + atrasadas + '</strong></div>';
+    $('tabela-lojas').innerHTML = LOJAS.length ? LOJAS.map(function (l) {
+      var m = mensal(l);
+      return '<tr><td><strong>' + esc(l.nome) + '</strong></td>' +
+        '<td>' + (l.ativa ? (l.aberta ? '<span class="pill ok">Aberta</span>' : '<span class="pill off">Fechada</span>') : '<span class="pill bad">Suspensa</span>') + '</td>' +
+        '<td class="num-c">' + l.pedidos_hoje + '</td><td class="num-c">' + fmt(l.faturamento_hoje) + '</td><td class="num-c">' + fmt(l.faturamento_mes) + '</td>' +
+        '<td><span class="pill ' + m[1] + '">' + esc(m[0]) + '</span></td></tr>';
+    }).join('') : '<tr><td colspan="6">Nenhuma loja cadastrada ainda.</td></tr>';
+  }
+
+  // ---------- Lojas ----------
+  function formLoja(l) {
+    var v = function (k) { return esc(l && l[k] != null ? l[k] : ''); };
+    var dinheiro = function (k, pad) { return l && l[k] != null ? Number(l[k]).toFixed(2).replace('.', ',') : pad; };
+    return '<form class="editor" id="form-loja" data-id="' + (l ? l.id : '') + '" novalidate>' +
+      '<h3>' + (l ? 'Editar ' + esc(l.nome) : 'Nova loja') + '</h3>' +
+      '<div class="grid2">' +
+        '<div class="field"><label for="e-nome">Nome da lanchonete</label><input id="e-nome" type="text" value="' + v('nome') + '" placeholder="Ex.: Skina do Sabor"></div>' +
+        '<div class="field"><label for="e-slug">Endereço no site</label><div class="prefixo"><span>?loja=</span><input id="e-slug" type="text" value="' + v('slug') + '" placeholder="skina-do-sabor" autocapitalize="off" spellcheck="false"></div></div>' +
+        '<div class="field"><label for="e-whatsapp">WhatsApp</label><input id="e-whatsapp" type="tel" inputmode="tel" value="' + (l && l.whatsapp ? esc(A.numBonito(l.whatsapp)) : '') + '" placeholder="(63) 9 9999-9999"></div>' +
+        '<div class="field"><label for="e-endereco">Endereço</label><input id="e-endereco" type="text" value="' + v('endereco') + '"></div>' +
+        '<div class="field"><label for="e-horario">Horário</label><input id="e-horario" type="text" value="' + v('horario') + '" placeholder="Terça a domingo, das 18h às 23h30"></div>' +
+        '<div class="field"><label for="e-descricao">Frase de apresentação</label><input id="e-descricao" type="text" value="' + v('descricao') + '"></div>' +
+        '<div class="field"><label for="e-taxa">Taxa de entrega (R$)</label><input id="e-taxa" type="text" inputmode="decimal" value="' + dinheiro('taxa_entrega', '0,00') + '"></div>' +
+        '<div class="field"><label for="e-tempo">Tempo de entrega</label><input id="e-tempo" type="text" value="' + v('tempo_entrega') + '" placeholder="30 a 45 min"></div>' +
+        '<div class="field"><label for="e-pix">Chave Pix</label><input id="e-pix" type="text" value="' + v('pix_chave') + '"></div>' +
+        '<div class="field"><label for="e-pixnome">Nome no Pix</label><input id="e-pixnome" type="text" value="' + v('pix_nome') + '"></div>' +
+        '<div class="field"><label for="e-pixcidade">Cidade no Pix</label><input id="e-pixcidade" type="text" value="' + v('pix_cidade') + '" placeholder="SAO BENTO"></div>' +
+        '<div class="field"><label for="e-mensal">Mensalidade (R$)</label><input id="e-mensal" type="text" inputmode="decimal" value="' + dinheiro('mensalidade', '0,00') + '"></div>' +
+        '<div class="field"><label for="e-pagoate">Pago até</label><input id="e-pagoate" type="date" value="' + v('pago_ate') + '" style="font:400 16px var(--font-body);padding:11px;border:1px solid var(--line);border-radius:12px"></div>' +
+      '</div>' +
+      '<label class="check"><input type="checkbox" id="e-ativa"' + (!l || l.ativa ? ' checked' : '') + '> Loja ativa (desmarque para suspender)</label>' +
+      '<p class="msg-box bad" id="e-erro" role="alert" hidden></p>' +
+      '<div class="botoes"><button class="btn" type="submit">' + (l ? 'Salvar alterações' : 'Cadastrar loja') + '</button><button class="btn ghost" type="button" id="cancelar-form">Cancelar</button></div>' +
+    '</form>';
+  }
+  function abrirForm(l) {
+    editando = l ? l.id : 'nova';
+    $('form-area').innerHTML = formLoja(l);
+    var nome = $('e-nome'), slug = $('e-slug'), mexeu = !!l;
+    slug.addEventListener('input', function () { mexeu = true; });
+    nome.addEventListener('input', function () { if (!mexeu) slug.value = slugDe(nome.value); });
+    $('cancelar-form').addEventListener('click', function () { editando = null; $('form-area').innerHTML = ''; });
+    $('form-loja').addEventListener('submit', salvarLoja);
+    $('form-area').scrollIntoView({ block: 'start' });
+    nome.focus();
+  }
+  function num(t) { var x = Number(String(t || '0').replace(/\s/g, '').replace('R$', '').replace(/\.(?=\d{3})/g, '').replace(',', '.')); return isFinite(x) && x >= 0 ? x : null; }
+  async function salvarLoja(e) {
+    e.preventDefault();
+    var f = e.target, erro = $('e-erro');
+    var taxa = num($('e-taxa').value), mensalidade = num($('e-mensal').value);
+    if (taxa === null || mensalidade === null) { erro.textContent = 'Confira a taxa de entrega e a mensalidade. Use algo como 5,00.'; erro.hidden = false; return; }
+    var w = $('e-whatsapp').value.replace(/\D/g, '');
+    if (w.length === 10 || w.length === 11) w = '55' + w;
+    var dados = {
+      id: f.dataset.id || null, nome: $('e-nome').value.trim(), slug: $('e-slug').value.trim().toLowerCase(),
+      whatsapp: w, endereco: $('e-endereco').value, horario: $('e-horario').value, descricao: $('e-descricao').value,
+      taxa_entrega: taxa, tempo_entrega: $('e-tempo').value, pix_chave: $('e-pix').value, pix_nome: $('e-pixnome').value,
+      pix_cidade: $('e-pixcidade').value, mensalidade: mensalidade, pago_ate: $('e-pagoate').value || null, ativa: $('e-ativa').checked
+    };
+    var x = await db.rpc('admin_salvar_loja', { p: dados });
+    if (x.error) { erro.textContent = x.error.message; erro.hidden = false; return; }
+    var nova = !f.dataset.id;
+    editando = null;
+    $('form-area').innerHTML = '';
+    await carregar();
+    A.aviso(nova ? 'Loja cadastrada. Agora monte o cardápio no painel dela.' : 'Loja salva.');
+  }
+  function renderLojas() {
+    $('lojas').innerHTML = LOJAS.length ? LOJAS.map(function (l) {
+      var m = mensal(l);
+      return '<article class="loja' + (l.ativa ? '' : ' suspensa') + '" data-loja="' + l.id + '">' +
+        '<div class="loja-top"><div class="mark sm" aria-hidden="true">' + esc(A.iniciais(l.nome)) + '</div><div style="min-width:0"><strong>' + esc(l.nome) + '</strong><small>' + esc(linkLoja(l)) + '</small></div></div>' +
+        '<div class="selos">' + (l.ativa ? '<span class="pill ok">Ativa</span>' : '<span class="pill bad">Suspensa</span>') +
+          (l.aberta ? '<span class="pill ok">Aberta agora</span>' : '<span class="pill off">Fechada agora</span>') +
+          '<span class="pill ' + m[1] + '">' + esc(m[0]) + '</span></div>' +
+        '<dl class="linha-info">' +
+          '<dt>Dono</dt><dd>' + (l.dono_email ? esc(l.dono_email) : '<span style="color:var(--muted)">Sem dono ligado</span>') + '</dd>' +
+          '<dt>Mensalidade</dt><dd>' + (Number(l.mensalidade) ? fmt(l.mensalidade) + ' por mês' : 'Sem cobrança') + '</dd>' +
+          '<dt>Cardápio</dt><dd>' + l.produtos + (l.produtos === 1 ? ' item' : ' itens') + '</dd>' +
+          '<dt>No mês</dt><dd>' + l.pedidos_mes + ' pedidos · ' + fmt(l.faturamento_mes) + '</dd>' +
+        '</dl>' +
+        '<form class="dono-form" data-dono="' + l.id + '" novalidate><label class="sr" for="d-' + l.id + '">E-mail do dono</label>' +
+          '<input id="d-' + l.id + '" type="email" inputmode="email" placeholder="E-mail da conta do dono">' +
+          '<button class="btn mini" type="submit">' + (l.dono_email ? 'Trocar dono' : 'Ligar dono') + '</button></form>' +
+        '<div class="botoes">' +
+          '<a class="btn mini" href="painel.html?loja=' + encodeURIComponent(l.slug) + '">Abrir painel</a>' +
+          '<a class="btn soft mini" href="' + esc(linkLoja(l)) + '" target="_blank" rel="noopener">Ver cardápio</a>' +
+          '<button class="btn soft mini" type="button" data-editar="' + l.id + '">Editar dados</button>' +
+          (Number(l.mensalidade) ? '<button class="btn soft mini" type="button" data-pagar="' + l.id + '">Registrar 1 mês pago</button>' : '') +
+          (l.dono_email ? '<button class="btn danger mini" type="button" data-desligar="' + l.id + '">Remover dono</button>' : '') +
+          '<button class="btn danger mini" type="button" data-suspender="' + l.id + '">' + (l.ativa ? 'Suspender' : 'Reativar') + '</button>' +
+        '</div></article>';
+    }).join('') : '<p class="vazio">Nenhuma loja ainda. Toque em "Nova loja" para cadastrar a primeira.</p>';
+  }
+  $('nova-loja').addEventListener('click', function () { abrirForm(null); });
+  $('lojas').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var f = e.target;
+    if (!f.dataset.dono) return;
+    var email = f.querySelector('input').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return A.aviso('Digite um e-mail válido.');
+    var x = await db.rpc('admin_ligar_dono', { p_loja: f.dataset.dono, p_email: email });
+    if (x.error) return A.aviso(x.error.message);
+    await carregar();
+    A.aviso('Pronto. ' + email + ' já pode entrar e abrir o painel da loja.');
+  });
+  $('lojas').addEventListener('click', async function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    var achar = function (id) { return LOJAS.filter(function (l) { return l.id === id; })[0]; };
+    if (b.dataset.editar) return abrirForm(achar(b.dataset.editar));
+    var chave = b.dataset.pagar ? 'p' + b.dataset.pagar : b.dataset.desligar ? 'd' + b.dataset.desligar : b.dataset.suspender ? 's' + b.dataset.suspender : null;
+    if (!chave) return;
+    if (confirma !== chave) {
+      confirma = chave;
+      var original = b.textContent;
+      b.textContent = 'Toque de novo para confirmar';
+      setTimeout(function () { if (confirma === chave) { confirma = null; b.textContent = original; } }, 4000);
+      return;
+    }
+    confirma = null;
+    var x, ok;
+    if (b.dataset.pagar) {
+      x = await db.rpc('admin_registrar_pagamento', { p_loja: b.dataset.pagar, p_meses: 1 });
+      ok = x.error ? null : 'Pagamento registrado. Em dia até ' + dataBR(x.data) + '.';
+    } else if (b.dataset.desligar) {
+      x = await db.rpc('admin_desligar_dono', { p_loja: b.dataset.desligar });
+      ok = 'Dono removido da loja.';
+    } else {
+      var l = achar(b.dataset.suspender);
+      var dados = Object.assign({}, l, { ativa: !l.ativa });
+      x = await db.rpc('admin_salvar_loja', { p: dados });
+      ok = l.ativa ? 'Loja suspensa. O cardápio parou de aceitar pedidos.' : 'Loja reativada.';
+    }
+    if (erroDe(x)) return A.aviso(erroDe(x));
+    await carregar();
+    A.aviso(ok);
+  });
+
+  // ---------- Usuários ----------
+  var PAPEL = { admin: ['Administrador', 'warn'], lojista: ['Lojista', 'ok'], cliente: ['Freguês', 'off'] };
+  async function carregarUsuarios() {
+    var x = await db.rpc('admin_usuarios');
+    if (x.error) { $('tabela-usuarios').innerHTML = '<tr><td colspan="6">' + esc(x.error.message) + '</td></tr>'; return; }
+    $('tabela-usuarios').innerHTML = x.data.length ? x.data.map(function (u) {
+      var p = PAPEL[u.papel] || [u.papel, 'off'];
+      return '<tr><td>' + esc(u.email) + '</td><td>' + esc(u.nome || '') + '</td><td><span class="pill ' + p[1] + '">' + p[0] + '</span></td>' +
+        '<td>' + esc((u.lojas || []).join(', ')) + '</td><td class="num-c">' + u.pedidos + '</td><td>' + dataBR(u.criado_em) + '</td></tr>';
+    }).join('') : '<tr><td colspan="6">Nenhuma conta ainda.</td></tr>';
+  }
+
+  // ---------- Abas ----------
+  var ABAS = { geral: 'aba-geral', lojas: 'aba-lojas', usuarios: 'aba-usuarios' };
+  Object.keys(ABAS).forEach(function (k) {
+    $('tab-' + k).addEventListener('click', function () {
+      Object.keys(ABAS).forEach(function (j) {
+        $('tab-' + j).setAttribute('aria-selected', j === k ? 'true' : 'false');
+        $(ABAS[j]).hidden = j !== k;
+      });
+      if (k === 'usuarios') carregarUsuarios();
+      else carregar();
+    });
+  });
+
+  if (await carregar()) {
+    $('carregando').hidden = true;
+    $('tela').hidden = false;
+  }
+  setInterval(function () { if (!editando && !$('aba-geral').hidden) carregar(); }, 60000);
+})();
+</script>
+</body>
+</html>

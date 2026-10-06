@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="comum.css">
+<style>
+/* Layout: faixa escura no topo com a marca, cartão central com o formulário que muda de modo (entrar, criar, recuperar). */
+html, body { min-height: 100%; }
+.faixa { background: var(--head); color: var(--head-ink); padding-top: env(safe-area-inset-top, 0px); }
+.faixa .wrap { padding-block: 28px 64px; }
+.faixa h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 8vw, 40px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.faixa p { margin: 8px 0 0; color: var(--head-muted); max-width: 40ch; }
+.cartao { margin-top: -40px; background: var(--bg); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, .08); }
+.cartao h2 { margin: 0; font-size: 20px; }
+.links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+.troca { background: none; border: 0; padding: 0; color: var(--dark); font: 700 15px var(--font-body); text-decoration: underline; cursor: pointer; }
+.papeis { margin-top: 18px; display: grid; gap: 8px; color: var(--muted); font-size: 14px; padding-bottom: 40px; }
+.papeis strong { color: var(--ink); }
+.ver-senha { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header class="faixa">
+  <div class="wrap">
+    <h1 id="titulo">Entrar</h1>
+    <p id="subtitulo">Uma conta só para tudo: pedidos, painel da lanchonete e administração.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <form class="cartao" id="form" novalidate>
+    <h2 id="form-titulo">Acesse sua conta</h2>
+
+    <div class="field" id="campo-nome" hidden>
+      <label for="f-nome">Seu nome</label>
+      <input id="f-nome" type="text" autocomplete="name" placeholder="Como devemos te chamar?">
+    </div>
+    <div class="field" id="campo-email">
+      <label for="f-email">E-mail</label>
+      <input id="f-email" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com">
+    </div>
+    <div class="field" id="campo-senha">
+      <label for="f-senha" id="rot-senha">Senha</label>
+      <input id="f-senha" type="password" autocomplete="current-password" minlength="6" placeholder="Mínimo de 6 caracteres">
+      <label class="ver-senha"><input type="checkbox" id="ver-senha"> Mostrar senha</label>
+    </div>
+
+    <p class="msg-box" id="msg" role="alert" hidden></p>
+    <button class="btn big" type="submit" id="enviar">Entrar</button>
+
+    <div class="links">
+      <button class="troca" type="button" id="ir-criar">Criar conta</button>
+      <button class="troca" type="button" id="ir-esqueci">Esqueci a senha</button>
+      <button class="troca" type="button" id="ir-entrar" hidden>Já tenho conta</button>
+    </div>
+  </form>
+
+  <div class="papeis">
+    <span><strong>Fregueses:</strong> a conta é opcional. Ela guarda seu endereço e mostra seus pedidos.</span>
+    <span><strong>Lanchonetes:</strong> entre com o e-mail liberado pelo suporte para abrir o painel.</span>
+    <a href="index.html" style="color:var(--dark);font-weight:700">Ver o cardápio sem entrar</a>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="comum.js"></script>
+<script>
+(function () {
+  var A = window.APP, $ = A.$, db = A.db;
+  var params = new URLSearchParams(location.search);
+  var volta = A.voltaSegura(params.get('volta'));
+  var base = new URL('.', location.href).href;
+  var modo = 'entrar', recuperando = false, ocupado = false;
+
+  var MODOS = {
+    entrar: { titulo: 'Entrar', form: 'Acesse sua conta', botao: 'Entrar', nome: false, email: true, senha: true, rot: 'Senha' },
+    criar: { titulo: 'Criar conta', form: 'Leva menos de um minuto', botao: 'Criar conta', nome: true, email: true, senha: true, rot: 'Crie uma senha' },
+    esqueci: { titulo: 'Recuperar senha', form: 'Enviaremos um link para você criar uma senha nova', botao: 'Enviar link', nome: false, email: true, senha: false },
+    nova: { titulo: 'Nova senha', form: 'Escolha sua senha nova', botao: 'Salvar senha', nome: false, email: false, senha: true, rot: 'Senha nova' }
+  };
+
+  function msg(texto, ok) {
+    var el = $('msg');
+    el.textContent = texto || '';
+    el.className = 'msg-box ' + (ok ? 'ok' : 'bad');
+    el.hidden = !texto;
+  }
+  function mudar(m) {
+    modo = m;
+    var c = MODOS[m];
+    $('titulo').textContent = c.titulo;
+    document.title = c.titulo;
+    $('form-titulo').textContent = c.form;
+    $('enviar').textContent = c.botao;
+    $('campo-nome').hidden = !c.nome;
+    $('campo-email').hidden = !c.email;
+    $('campo-senha').hidden = !c.senha;
+    if (c.rot) $('rot-senha').textContent = c.rot;
+    $('f-senha').autocomplete = m === 'entrar' ? 'current-password' : 'new-password';
+    $('ir-criar').hidden = m !== 'entrar';
+    $('ir-esqueci').hidden = m !== 'entrar';
+    $('ir-entrar').hidden = m === 'entrar' || m === 'nova';
+    msg('');
+  }
+  $('ir-criar').addEventListener('click', function () { mudar('criar'); $('f-nome').focus(); });
+  $('ir-esqueci').addEventListener('click', function () { mudar('esqueci'); $('f-email').focus(); });
+  $('ir-entrar').addEventListener('click', function () { mudar('entrar'); $('f-email').focus(); });
+  $('ver-senha').addEventListener('change', function () { $('f-senha').type = this.checked ? 'text' : 'password'; });
+
+  function traduz(m) {
+    m = String(m || '');
+    if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
+    if (/not confirmed/i.test(m)) return 'Confirme seu e-mail pelo link que enviamos antes de entrar. Olhe também no spam.';
+    if (/already registered|already been registered|already exists/i.test(m)) return 'Este e-mail já tem conta. Toque em "Já tenho conta" para entrar.';
+    if (/password/i.test(m) && /6|short|least|weak/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+    if (/same.*password|different from the old/i.test(m)) return 'A senha nova precisa ser diferente da anterior.';
+    if (/rate limit|too many|security purposes/i.test(m)) return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.';
+    if (/fetch|network/i.test(m)) return 'Sem conexão com a internet.';
+    return 'Algo deu errado: ' + m;
+  }
+
+  async function seguir() {
+    var p = await A.perfil();
+    if (!p) return;
+    var destino = A.DESTINO[p.papel] || 'minha-conta.html';
+    if (volta && (p.papel === 'cliente' || /^(painel|admin)\.html/.test(volta) || /^index\.html/.test(volta))) destino = volta;
+    if (p.papel === 'cliente' && /^(painel|admin)\.html/.test(destino)) destino = 'minha-conta.html';
+    location.replace(destino);
+  }
+
+  $('form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (ocupado) return;
+    var nome = $('f-nome').value.trim(), email = $('f-email').value.trim(), senha = $('f-senha').value;
+    var c = MODOS[modo];
+    if (c.nome && !nome) return msg('Digite seu nome.');
+    if (c.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return msg('Digite um e-mail válido.');
+    if (c.senha && senha.length < 6) return msg('A senha precisa ter pelo menos 6 caracteres.');
+    ocupado = true;
+    $('enviar').disabled = true;
+    msg('');
+    var r;
+    if (modo === 'entrar') {
+      r = await db.auth.signInWithPassword({ email: email, password: senha });
+      if (!r.error) return seguir();
+    } else if (modo === 'criar') {
+      r = await db.auth.signUp({ email: email, password: senha, options: { data: { nome: nome }, emailRedirectTo: base + 'entrar.html' + (volta ? '?volta=' + encodeURIComponent(volta) : '') } });
+      if (!r.error) {
+        if (r.data.session) return seguir();
+        mudar('entrar');
+        $('f-email').value = email;
+        msg('Conta criada! Abra o e-mail que enviamos para ' + email + ' e toque no link de confirmação. Depois é só entrar aqui.', true);
+      }
+    } else if (modo === 'esqueci') {
+      r = await db.auth.resetPasswordForEmail(email, { redirectTo: base + 'entrar.html' });
+      if (!r.error) msg('Se existir uma conta com esse e-mail, enviamos um link para criar uma senha nova.', true);
+    } else if (modo === 'nova') {
+      r = await db.auth.updateUser({ password: senha });
+      if (!r.error) { A.aviso('Senha alterada.'); recuperando = false; return seguir(); }
+    }
+    ocupado = false;
+    $('enviar').disabled = false;
+    if (r && r.error) msg(traduz(r.error.message));
+  });
+
+  db.auth.onAuthStateChange(function (evento) {
+    if (evento === 'PASSWORD_RECOVERY') { recuperando = true; mudar('nova'); $('f-senha').focus(); }
+  });
+
+  // Quem já está logado vai direto para a sua área (menos quem veio pelo link de nova senha).
+  setTimeout(async function () {
+    if (/type=recovery/.test(location.hash)) { recuperando = true; mudar('nova'); return; }
+    if (/error_description=/.test(location.hash)) {
+      var d = decodeURIComponent((location.hash.match(/error_description=([^&]+)/) || [])[1] || '').replace(/\+/g, ' ');
+      msg(/expired|invalid/i.test(d) ? 'Esse link expirou ou já foi usado. Peça um novo.' : d);
+      return;
+    }
+    if (!recuperando) {
+      var s = await db.auth.getSession();
+      if (s.data && s.data.session && !recuperando) seguir();
+    }
+  }, 300);
+
+  mudar(params.get('modo') === 'criar' ? 'criar' : 'entrar');
+})();
+</script>
+</body>
+</html>
