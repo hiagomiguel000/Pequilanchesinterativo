@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Seu pedido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="comum.css">
+<style>
+/* Layout: cabeçalho escuro com número do pedido, linha do tempo do status, pagamento e itens em blocos. */
+.top { background: var(--head); color: var(--head-ink); }
+.top .wrap { padding-block: 20px 22px; display: grid; gap: 14px; }
+.top-row { display: flex; align-items: center; gap: 12px; }
+.top-row .mark { width: 42px; height: 42px; font-size: 18px; }
+.loja { font-weight: 700; color: var(--head-muted); font-size: 14px; }
+.numero { font-family: var(--font-display); font-weight: 400; font-size: clamp(32px, 9vw, 42px); line-height: 1; margin: 0; }
+.agora { font-size: 18px; font-weight: 700; margin: 0; }
+.atualizado { font-size: 13px; color: var(--head-muted); margin: 0; }
+
+.corpo { padding-block: 18px 40px; display: grid; gap: 14px; }
+
+/* Linha do tempo do pedido */
+.passos { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.passo { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; position: relative; padding-bottom: 18px; }
+.passo:last-child { padding-bottom: 0; }
+.passo::before { content: ""; position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px; background: var(--line); }
+.passo:last-child::before { display: none; }
+.passo.feito::before { background: var(--dark); }
+.bola { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); background: var(--bg); box-sizing: border-box; display: grid; place-items: center; color: var(--on-dark); }
+.passo.feito .bola { background: var(--dark); border-color: var(--dark); }
+.passo.atual .bola { border-color: var(--dark); box-shadow: 0 0 0 4px var(--pequi-soft); }
+.passo-nome { font-weight: 700; padding-top: 3px; }
+.passo:not(.feito):not(.atual) .passo-nome { color: var(--muted); font-weight: 500; }
+.passo-sub { font-size: 13px; color: var(--muted); }
+
+.cancelado { background: var(--danger-soft); color: var(--danger); border-radius: 14px; padding: 14px 16px; font-weight: 600; }
+
+.itens { display: grid; gap: 8px; }
+.it { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+.it span:first-child { min-width: 0; }
+.totais { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 10px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.totais div { display: flex; justify-content: space-between; gap: 12px; }
+.totais .grand { color: var(--ink); font-weight: 800; font-size: 18px; }
+
+.pago-ok { display: flex; align-items: center; gap: 10px; background: var(--ok-soft); color: var(--ok-ink); border-radius: 12px; padding: 12px 14px; font-weight: 700; }
+.acoes { display: grid; gap: 8px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="mark" id="mark" aria-hidden="true"></div>
+      <div>
+        <div class="loja" id="loja-nome">Carregando…</div>
+        <h1 class="numero" id="numero">Pedido</h1>
+      </div>
+    </div>
+    <div>
+      <p class="agora" id="agora" aria-live="polite"></p>
+      <p class="atualizado" id="atualizado"></p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap corpo" id="corpo">
+  <div class="state" id="estado">Buscando seu pedido…</div>
+
+  <section class="block" id="b-status" hidden aria-labelledby="h-status">
+    <h3 id="h-status">Andamento</h3>
+    <ol class="passos" id="passos"></ol>
+    <div class="cancelado" id="cancelado" hidden>Este pedido foi cancelado pela lanchonete. Se tiver dúvida, fale com ela pelo WhatsApp.</div>
+  </section>
+
+  <section class="block" id="b-pag" hidden aria-labelledby="h-pag">
+    <h3 id="h-pag">Pagamento</h3>
+    <div id="pag-conteudo"></div>
+  </section>
+
+  <section class="block" id="b-itens" hidden aria-labelledby="h-itens">
+    <h3 id="h-itens">Itens</h3>
+    <div class="itens" id="itens"></div>
+    <div class="totais" id="totais"></div>
+  </section>
+
+  <div class="acoes" id="acoes" hidden>
+    <a class="btn big" id="whats" href="#" target="_blank" rel="noopener">Falar com a lanchonete</a>
+    <a class="btn big ghost" id="novo" href="index.html">Fazer outro pedido</a>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="comum.js"></script>
+<script>
+(function () {
+  var A = window.APP, $ = A.$, fmt = A.fmt, esc = A.esc;
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var pedido = null, pixFeito = '', ultimoStatus = null, timer = null;
+  var CHECK = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function passosDe(p) {
+    var fim = p.modo === 'entrega' ? ['saiu', 'Saiu para entrega', 'O entregador está a caminho.'] : ['pronto', 'Pronto para retirar', 'Pode buscar no balcão.'];
+    return [
+      ['recebido', 'Pedido recebido', 'A lanchonete já recebeu seu pedido.'],
+      ['preparo', 'Em preparo', 'Seu pedido está sendo feito.'],
+      fim,
+      ['concluido', p.modo === 'entrega' ? 'Entregue' : 'Retirado', 'Bom apetite!']
+    ];
+  }
+  var FRASE = {
+    recebido: 'Recebemos seu pedido.', preparo: 'Seu pedido está sendo preparado.',
+    saiu: 'Seu pedido saiu para entrega.', pronto: 'Seu pedido está pronto para retirar.',
+    concluido: 'Pedido concluído. Bom apetite!', cancelado: 'Pedido cancelado.'
+  };
+
+  function render() {
+    var p = pedido, L = p.loja;
+    document.title = 'Pedido #' + p.numero + ' · ' + L.nome;
+    $('mark').textContent = A.iniciais(L.nome);
+    $('loja-nome').textContent = L.nome;
+    $('numero').textContent = 'Pedido #' + p.numero;
+    $('agora').textContent = FRASE[p.status] || '';
+    $('atualizado').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · esta página se atualiza sozinha';
+    $('estado').hidden = true;
+
+    // Andamento
+    var cancel = p.status === 'cancelado';
+    $('cancelado').hidden = !cancel;
+    $('passos').hidden = cancel;
+    if (!cancel) {
+      var lista = passosDe(p), idx = lista.findIndex(function (s) { return s[0] === p.status; });
+      $('passos').innerHTML = lista.map(function (s, i) {
+        var cls = i < idx || p.status === 'concluido' ? 'feito' : i === idx ? 'atual' : '';
+        return '<li class="passo ' + cls + '"><span class="bola">' + (cls === 'feito' ? CHECK : '') + '</span>' +
+          '<div><div class="passo-nome">' + esc(s[1]) + '</div>' + (i === idx && p.status !== 'concluido' ? '<div class="passo-sub">' + esc(s[2]) + '</div>' : '') + '</div></li>';
+      }).join('');
+    }
+    $('b-status').hidden = false;
+
+    // Pagamento
+    var pc = $('pag-conteudo');
+    if (p.pago) {
+      pc.innerHTML = '<div class="pago-ok">' + CHECK + ' Pagamento confirmado pela lanchonete</div>';
+      pixFeito = '';
+    } else if (p.pagamento === 'pix' && !cancel && L.pix_chave) {
+      if (pixFeito !== String(p.total)) {
+        var codigo = A.pixPayload(L, p.total, 'PED' + p.numero);
+        var svg = A.qrSvg(codigo);
+        pc.innerHTML = '<div class="pix">' +
+          '<div class="pix-qr" role="img" aria-label="QR Code do Pix">' + (svg || 'Use o código copia e cola.') + '</div>' +
+          '<div class="pix-info"><p class="pix-label">Pix · valor exato</p><p class="pix-val">' + fmt(p.total) + '</p>' +
+          '<p class="pix-key">Chave: ' + esc(L.pix_chave) + '</p>' +
+          '<button type="button" class="btn" id="pix-copy">Copiar código Pix</button></div>' +
+          '<input class="copia" id="pix-code" type="text" readonly aria-label="Código Pix copia e cola" hidden>' +
+          '<p class="pix-note">Pague pelo app do seu banco. A lanchonete confirma o pagamento e esta página mostra quando cair.</p></div>';
+        $('pix-copy').addEventListener('click', function () { A.copiar(codigo, $('pix-code'), 'Código Pix copiado.'); });
+        pixFeito = String(p.total);
+      }
+    } else {
+      pixFeito = '';
+      var como = A.PAGAMENTO[p.pagamento] || p.pagamento;
+      pc.innerHTML = '<p class="hint" style="font-size:15px;color:var(--ink)">' + esc(como) + (p.modo === 'entrega' ? ' na entrega.' : ' na retirada.') + '</p>';
+    }
+    $('b-pag').hidden = false;
+
+    // Itens
+    $('itens').innerHTML = p.itens.map(function (i) {
+      return '<div class="it"><span>' + i.quantidade + 'x ' + esc(i.nome) + '</span><span>' + fmt(i.quantidade * i.preco_unit) + '</span></div>';
+    }).join('');
+    $('totais').innerHTML = '<div><span>Subtotal</span><span>' + fmt(p.subtotal) + '</span></div>' +
+      (p.modo === 'entrega' ? '<div><span>Entrega</span><span>' + fmt(p.taxa) + '</span></div>' : '<div><span>Retirada no balcão</span><span>Sem taxa</span></div>') +
+      '<div class="grand"><span>Total</span><span>' + fmt(p.total) + '</span></div>';
+    $('b-itens').hidden = false;
+
+    // Ações
+    var w = $('whats');
+    w.hidden = !L.whatsapp;
+    if (L.whatsapp) w.href = A.linkWhats(L.whatsapp, 'Olá! Sobre o meu pedido #' + p.numero + '.');
+    $('novo').href = 'index.html?loja=' + encodeURIComponent(L.slug);
+    $('acoes').hidden = false;
+
+    if (ultimoStatus && ultimoStatus !== p.status) A.aviso(FRASE[p.status] || 'Pedido atualizado.');
+    ultimoStatus = p.status;
+  }
+
+  async function buscar() {
+    if (!/^[0-9a-f-]{36}$/i.test(token)) {
+      $('estado').innerHTML = '<strong>Link de pedido inválido.</strong><a class="btn" href="index.html">Ver o cardápio</a>';
+      return;
+    }
+    var r = await A.db.rpc('acompanhar_pedido', { p_token: token });
+    if (r.error) {
+      if (!pedido) $('estado').innerHTML = '<strong>Não foi possível carregar seu pedido.</strong><span>Confira sua internet. Vamos tentar de novo sozinhos.</span>';
+      return agendar(15000);
+    }
+    if (!r.data) {
+      $('estado').innerHTML = '<strong>Não encontramos este pedido.</strong><a class="btn" href="index.html">Ver o cardápio</a>';
+      return;
+    }
+    pedido = r.data;
+    render();
+    var fim = pedido.status === 'concluido' || pedido.status === 'cancelado';
+    if (!fim || !pedido.pago) agendar(fim ? 30000 : 8000);
+  }
+  function agendar(ms) { clearTimeout(timer); timer = setTimeout(buscar, ms); }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) buscar(); });
+
+  buscar();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Painel da lanchonete</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="comum.css">
+<style>
+/* Layout: painel de cozinha. Barra escura no topo com a loja e o botão abrir/fechar; abas; pedidos em cartões que viram grade no tablet. */
+.wide { max-width: 1040px; margin-inline: auto; padding-inline: 16px; box-sizing: border-box; }
+
+/* Login */
+.login { min-height: 100%; display: grid; place-items: center; padding-block: 48px; }
+.login-card { width: 100%; max-width: 380px; display: grid; gap: 14px; }
+.login-card h1 { font-family: var(--font-display); font-weight: 400; font-size: 32px; margin: 0; line-height: 1.1; }
+.login-card p { margin: 0; color: var(--muted); }
+.troca { background: none; border: 0; padding: 0; color: var(--dark); font: 700 15px var(--font-body); text-decoration: underline; cursor: pointer; justify-self: start; }
+.msg-box { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.msg-box.bad { background: var(--danger-soft); color: var(--danger); }
+.msg-box.ok { background: var(--ok-soft); color: var(--ok-ink); }
+
+/* Barra do topo */
+.bar { background: var(--head); color: var(--head-ink); position: sticky; top: 0; z-index: 10; padding-top: env(safe-area-inset-top, 0px); }
+.bar .wide { display: flex; align-items: center; gap: 12px; padding-block: 12px; flex-wrap: wrap; }
+.bar-loja { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 200px; }
+.bar-loja strong { font-size: 17px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-loja span { font-size: 12px; color: var(--head-muted); display: flex; align-items: center; gap: 6px; }
+.vivo { width: 8px; height: 8px; border-radius: 50%; background: var(--head-muted); }
+.vivo.on { background: var(--ok); }
+.bar-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.bar .btn { background: var(--head-2); color: var(--head-ink); padding: 10px 14px; font-size: 14px; }
+.bar .btn.aberta { background: var(--ok); color: var(--dark); }
+.bar .btn.fechada { background: var(--pequi); color: var(--dark); }
+
+.tabs { border-bottom: 1px solid var(--line); background: var(--bg); }
+.tabs .wide { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.tab { flex: none; background: none; border: 0; border-bottom: 3px solid transparent; padding: 14px 12px 11px; font: 700 15px var(--font-body); color: var(--muted); cursor: pointer; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--dark); }
+.tab .n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding-inline: 6px; box-sizing: border-box; border-radius: 999px; background: var(--pequi); color: var(--dark); font-size: 12px; margin-left: 6px; font-variant-numeric: tabular-nums; }
+
+.conteudo { padding-block: 18px 60px; display: grid; gap: 22px; }
+.secao h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; align-items: start; }
+.vazio { margin: 0; color: var(--muted); font-size: 15px; padding: 18px; border: 1px dashed var(--line); border-radius: 14px; text-align: center; }
+
+/* Cartão de pedido: a faixa à esquerda mostra o estado */
+.ped { background: var(--bg); border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.ped.st-recebido { border-left-color: var(--pequi); background: #FFFCF5; }
+.ped.st-preparo { border-left-color: var(--dark); }
+.ped.st-saiu, .ped.st-pronto { border-left-color: var(--ok); }
+.ped.st-concluido { border-left-color: var(--line); }
+.ped.st-cancelado { border-left-color: var(--danger); opacity: .75; }
+.ped-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ped-num { font-family: var(--font-display); font-weight: 400; font-size: 24px; line-height: 1; }
+.ped-hora { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ped-top .pill { margin-left: auto; }
+.ped-cli { font-weight: 700; }
+.ped-cli a { color: var(--ink); font-weight: 600; }
+.ped-end { font-size: 14px; color: var(--muted); }
+.ped-end strong { color: var(--ink); }
+.ped-itens { list-style: none; margin: 0; padding: 10px 0; border-block: 1px solid var(--line); display: grid; gap: 4px; }
+.ped-itens li { display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; }
+.ped-itens b { font-size: 17px; }
+.ped-obs { margin: 0; background: var(--warn-soft); color: var(--warn-ink); border-radius: 8px; padding: 8px 10px; font-size: 14px; font-weight: 600; }
+.ped-pag { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.ped-pag strong { font-size: 18px; font-variant-numeric: tabular-nums; margin-right: auto; }
+.ped-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.ped-acoes .btn { flex: 1 1 auto; }
+.btn.mini { padding: 8px 10px; font-size: 13px; border-radius: 9px; }
+details.concluidos summary { cursor: pointer; font-weight: 700; color: var(--muted); padding-block: 6px; }
+
+/* Cardápio */
+.cat-bloco { display: grid; gap: 8px; }
+.cat-bloco h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 22px; }
+.prod { display: grid; grid-template-columns: minmax(0, 1fr) 110px auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.prod.off .prod-nome { color: var(--muted); text-decoration: line-through; }
+.prod-nome { font-weight: 700; min-width: 0; }
+.prod input[type="text"] { padding: 9px 10px; font-variant-numeric: tabular-nums; text-align: right; }
+.switch { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--muted); }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch .trilho { width: 44px; height: 26px; border-radius: 999px; background: var(--line); position: relative; flex: none; }
+.switch .trilho::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+.switch input:checked + .trilho { background: var(--ok-ink); }
+.switch input:checked + .trilho::after { left: 21px; }
+.switch input:focus-visible + .trilho { outline: 3px solid var(--pequi); outline-offset: 2px; }
+@media (max-width: 480px) { .prod { grid-template-columns: minmax(0, 1fr) 96px; } .prod .switch { grid-column: 1 / -1; } }
+
+/* Hoje */
+.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.num { border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.num span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.num strong { display: block; font-size: 26px; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.ranking { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ranking li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; font-variant-numeric: tabular-nums; }
+.ranking .barra { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.ranking .barra i { display: block; height: 100%; background: var(--dark); border-radius: 99px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ped.novo { animation: chega 1.2s ease-out 2; }
+  @keyframes chega { 0% { box-shadow: 0 0 0 0 rgba(233, 162, 27, .6); } 100% { box-shadow: 0 0 0 14px rgba(233, 162, 27, 0); } }
+}
+</style>
+</head>
+<body>
+
+<!-- Entrar -->
+<main class="wrap login" id="tela-login" hidden>
+  <form class="login-card" id="form-login" novalidate>
+    <h1 id="login-titulo">Painel da lanchonete</h1>
+    <p id="login-sub">Entre para ver e gerenciar os pedidos.</p>
+    <div class="field">
+      <label for="l-email">E-mail</label>
+      <input id="l-email" type="email" autocomplete="email" inputmode="email" required>
+    </div>
+    <div class="field">
+      <label for="l-senha">Senha</label>
+      <input id="l-senha" type="password" autocomplete="current-password" minlength="6" required>
+    </div>
+    <p class="msg-box" id="login-msg" role="alert" hidden></p>
+    <button class="btn big" type="submit" id="login-btn">Entrar</button>
+    <button class="troca" type="button" id="login-troca">Primeiro acesso? Criar conta</button>
+  </form>
+</main>
+
+<!-- Conta sem loja -->
+<main class="wrap" id="tela-sem-loja" hidden>
+  <div class="state">
+    <strong>Sua conta ainda não está ligada a uma lanchonete.</strong>
+    <span>Envie este e-mail para o suporte liberar o acesso: <b id="sem-loja-email"></b></span>
+    <button class="btn ghost" type="button" data-sair>Sair</button>
+  </div>
+</main>
+
+<!-- Painel -->
+<div id="tela-painel" hidden>
+  <header class="bar">
+    <div class="wide">
+      <div class="bar-loja">
+        <div class="mark sm" id="mark" aria-hidden="true"></div>
+        <div style="min-width:0">
+          <strong id="loja-nome"></strong>
+          <span><i class="vivo" id="vivo"></i><span id="vivo-txt">Conectando…</span></span>
+        </div>
+      </div>
+      <div class="bar-acoes">
+        <button class="btn" type="button" id="btn-aberta"></button>
+        <button class="btn" type="button" id="btn-som">Ativar som</button>
+        <button class="btn" type="button" data-sair>Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Seções do painel">
+    <div class="wide" role="tablist">
+      <button class="tab" role="tab" type="button" id="tab-pedidos" aria-selected="true" aria-controls="aba-pedidos">Pedidos<span class="n" id="n-novos" hidden></span></button>
+      <button class="tab" role="tab" type="button" id="tab-cardapio" aria-selected="false" aria-controls="aba-cardapio">Cardápio</button>
+      <button class="tab" role="tab" type="button" id="tab-hoje" aria-selected="false" aria-controls="aba-hoje">Hoje</button>
+    </div>
+  </nav>
+
+  <main class="wide conteudo" id="aba-pedidos" role="tabpanel" aria-labelledby="tab-pedidos">
+    <section class="secao"><h2>Novos</h2><div class="grade" id="g-novos"></div></section>
+    <section class="secao"><h2>Em andamento</h2><div class="grade" id="g-andamento"></div></section>
+    <section class="secao">
+      <details class="concluidos" id="det-concluidos">
+        <summary id="sum-concluidos">Concluídos e cancelados hoje</summary>
+        <div class="grade" id="g-concluidos" style="margin-top:10px"></div>
+      </details>
+    </section>
+  </main>
+
+  <main class="wide conteudo" id="aba-cardapio" role="tabpanel" aria-labelledby="tab-cardapio" hidden>
+    <p class="hint">Mude o preço e toque fora do campo para salvar. Desligue um item quando acabar: ele aparece como esgotado para o cliente.</p>
+    <div id="lista-cardapio" class="conteudo" style="padding:0"></div>
+  </main>
+
+  <main class="wide conteudo" id="aba-hoje" role="tabpanel" aria-labelledby="tab-hoje" hidden>
+    <div class="numeros" id="numeros"></div>
+    <section class="secao"><h2>Mais vendidos hoje</h2><ol class="ranking" id="ranking"></ol></section>
+  </main>
+</div>
+
+<div class="state" id="carregando">Carregando…</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="comum.js"></script>
+<script>
+(function () {
+  var A = window.APP, $ = A.$, fmt = A.fmt, esc = A.esc, db = A.db;
+  var usuario = null, loja = null, pedidos = [], conhecidos = {}, canal = null, criando = false;
+  var somLigado = false, audio = null, wake = null, recarga = null, pisca = null;
+
+  // ---------- Telas ----------
+  function mostrar(qual) {
+    ['tela-login', 'tela-sem-loja', 'tela-painel', 'carregando'].forEach(function (id) { $(id).hidden = id !== qual; });
+  }
+
+  // ---------- Entrar / criar conta ----------
+  function msgLogin(texto, ok) {
+    var el = $('login-msg');
+    el.textContent = texto || '';
+    el.className = 'msg-box ' + (ok ? 'ok' : 'bad');
+    el.hidden = !texto;
+  }
+  function traduz(m) {
+    m = String(m || '');
+    if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
+    if (/not confirmed/i.test(m)) return 'Confirme seu e-mail pelo link que enviamos antes de entrar.';
+    if (/already registered|already been registered/i.test(m)) return 'Este e-mail já tem conta. Use "Entrar".';
+    if (/password/i.test(m) && /6|short|least/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+    if (/rate limit|too many/i.test(m)) return 'Muitas tentativas. Espere alguns minutos e tente de novo.';
+    if (/fetch|network/i.test(m)) return 'Sem conexão com a internet.';
+    return m || 'Algo deu errado. Tente de novo.';
+  }
+  $('login-troca').addEventListener('click', function () {
+    criando = !criando;
+    $('login-titulo').textContent = criando ? 'Criar conta' : 'Painel da lanchonete';
+    $('login-sub').textContent = criando ? 'Use o e-mail do dono da lanchonete. Depois de criar, confirme pelo link que chega no e-mail.' : 'Entre para ver e gerenciar os pedidos.';
+    $('login-btn').textContent = criando ? 'Criar conta' : 'Entrar';
+    $('login-troca').textContent = criando ? 'Já tenho conta. Entrar' : 'Primeiro acesso? Criar conta';
+    $('l-senha').autocomplete = criando ? 'new-password' : 'current-password';
+    msgLogin('');
+  });
+  $('form-login').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var email = $('l-email').value.trim(), senha = $('l-senha').value;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return msgLogin('Digite um e-mail válido.');
+    if (senha.length < 6) return msgLogin('A senha precisa ter pelo menos 6 caracteres.');
+    var btn = $('login-btn');
+    btn.disabled = true;
+    msgLogin('');
+    var r = criando
+      ? await db.auth.signUp({ email: email, password: senha, options: { emailRedirectTo: location.origin + location.pathname } })
+      : await db.auth.signInWithPassword({ email: email, password: senha });
+    btn.disabled = false;
+    if (r.error) return msgLogin(traduz(r.error.message));
+    if (criando && !r.data.session) {
+      msgLogin('Conta criada. Abra o e-mail que enviamos e toque no link de confirmação. Depois volte aqui e entre.', true);
+      $('login-troca').click();
+      msgLogin('Conta criada. Abra o e-mail que enviamos e toque no link de confirmação. Depois volte aqui e entre.', true);
+    }
+  });
+  document.addEventListener('click', async function (e) {
+    if (!e.target.closest('[data-sair]')) return;
+    if (canal) { db.removeChannel(canal); canal = null; }
+    await db.auth.signOut();
+  });
+
+  db.auth.onAuthStateChange(function (evento, sessao) {
+    var u = sessao ? sessao.user : null;
+    if (u && usuario && u.id === usuario.id) return;
+    usuario = u;
+    setTimeout(iniciar, 0);
+  });
+
+  async function iniciar() {
+    if (!usuario) { loja = null; mostrar('tela-login'); return; }
+    mostrar('carregando');
+    var r = await db.from('lojas').select('id, slug, nome, aberta, taxa_entrega').eq('owner_id', usuario.id).limit(1).maybeSingle();
+    if (r.error) { $('carregando').innerHTML = '<strong>Não foi possível carregar o painel.</strong><span>Confira a internet e recarregue a página.</span>'; return; }
+    if (!r.data) { $('sem-loja-email').textContent = usuario.email; mostrar('tela-sem-loja'); return; }
+    loja = r.data;
+    document.title = 'Painel · ' + loja.nome;
+    $('mark').textContent = A.iniciais(loja.nome);
+    $('loja-nome').textContent = loja.nome;
+    renderAberta();
+    mostrar('tela-painel');
+    await carregarPedidos(true);
+    assinar();
+    clearInterval(recarga);
+    recarga = setInterval(function () { carregarPedidos(false); }, 60000);
+  }
+
+  // ---------- Abrir / fechar a loja ----------
+  function renderAberta() {
+    var b = $('btn-aberta');
+    b.textContent = loja.aberta ? 'Aberta · fechar' : 'Fechada · abrir';
+    b.className = 'btn ' + (loja.aberta ? 'aberta' : 'fechada');
+    b.setAttribute('aria-pressed', loja.aberta ? 'true' : 'false');
+  }
+  $('btn-aberta').addEventListener('click', async function () {
+    var novo = !loja.aberta;
+    var r = await db.from('lojas').update({ aberta: novo }).eq('id', loja.id);
+    if (r.error) return A.aviso('Não foi possível mudar. Tente de novo.');
+    loja.aberta = novo;
+    renderAberta();
+    A.aviso(novo ? 'Loja aberta. O cardápio já aceita pedidos.' : 'Loja fechada. O cardápio não aceita novos pedidos.');
+  });
+
+  // ---------- Som e tela ligada ----------
+  function bip() {
+    if (!somLigado || !audio) return;
+    var t0 = audio.currentTime;
+    [[0, 880], [0.22, 880], [0.44, 1175]].forEach(function (n) {
+      var o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'sine';
+      o.frequency.value = n[1];
+      g.gain.setValueAtTime(0.0001, t0 + n[0]);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + n[0] + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + n[0] + 0.2);
+      o.connect(g);
+      g.connect(audio.destination);
+      o.start(t0 + n[0]);
+      o.stop(t0 + n[0] + 0.22);
+    });
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  }
+  async function manterTela() {
+    try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wake = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+  $('btn-som').addEventListener('click', function () {
+    somLigado = !somLigado;
+    if (somLigado) {
+      try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (e) {}
+      bip();
+      manterTela();
+    }
+    this.textContent = somLigado ? 'Som ligado' : 'Ativar som';
+    this.setAttribute('aria-pressed', somLigado ? 'true' : 'false');
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      if (somLigado) manterTela();
+      if (loja) carregarPedidos(false);
+    }
+  });
+
+  // ---------- Pedidos ----------
+  function inicioDoDia() { var d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); }
+  async function carregarPedidos(primeira) {
+    if (!loja) return;
+    var r = await db.from('pedidos')
+      .select('id, numero, status, pago, cliente_nome, cliente_telefone, modo, endereco, referencia, pagamento, troco, observacao, subtotal, taxa, total, created_at, pedido_itens(nome, quantidade, preco_unit)')
+      .eq('loja_id', loja.id)
+      .or('created_at.gte.' + inicioDoDia() + ',status.in.(recebido,preparo,saiu,pronto)')
+      .order('created_at', { ascending: false })
+      .limit(300);
+    if (r.error) { A.aviso('Não foi possível atualizar os pedidos.'); return; }
+    var novos = [];
+    r.data.forEach(function (p) {
+      if (!primeira && !conhecidos[p.id] && p.status === 'recebido') novos.push(p);
+      conhecidos[p.id] = true;
+    });
+    pedidos = r.data;
+    renderPedidos(novos);
+    renderHoje();
+    if (novos.length) avisarNovo(novos);
+  }
+  var espera = null;
+  function recarregarLogo() { clearTimeout(espera); espera = setTimeout(function () { carregarPedidos(false); }, 400); }
+
+  function assinar() {
+    if (canal) db.removeChannel(canal);
+    canal = db.channel('pedidos-' + loja.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos', filter: 'loja_id=eq.' + loja.id }, recarregarLogo)
+      .subscribe(function (st) {
+        var on = st === 'SUBSCRIBED';
+        $('vivo').className = 'vivo' + (on ? ' on' : '');
+        $('vivo-txt').textContent = on ? 'Recebendo pedidos ao vivo' : 'Reconectando…';
+        if (on) carregarPedidos(false);
+      });
+  }
+
+  function avisarNovo(novos) {
+    bip();
+    A.aviso(novos.length === 1 ? 'Novo pedido #' + novos[0].numero + '!' : novos.length + ' pedidos novos!');
+    clearInterval(pisca);
+    var base = 'Painel · ' + loja.nome, n = 0;
+    pisca = setInterval(function () {
+      document.title = n++ % 2 ? base : '(!) Novo pedido';
+      if (n > 12 || document.hasFocus()) { clearInterval(pisca); document.title = base; }
+    }, 1000);
+    novos.forEach(function (p) { var el = document.querySelector('[data-ped="' + p.id + '"]'); if (el) el.classList.add('novo'); });
+  }
+
+  var ROTULO = { recebido: ['Novo', 'warn'], preparo: ['Em preparo', 'off'], saiu: ['Saiu para entrega', 'ok'], pronto: ['Pronto para retirar', 'ok'], concluido: ['Concluído', 'off'], cancelado: ['Cancelado', 'bad'] };
+  function proximo(p) {
+    if (p.status === 'recebido') return ['preparo', 'Aceitar e preparar'];
+    if (p.status === 'preparo') return p.modo === 'entrega' ? ['saiu', 'Saiu para entrega'] : ['pronto', 'Pronto para retirar'];
+    if (p.status === 'saiu' || p.status === 'pronto') return ['concluido', 'Concluir'];
+    return null;
+  }
+  function hora(iso) { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+  function ha(iso) {
+    var min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    return min < 1 ? 'agora' : min < 60 ? 'há ' + min + ' min' : 'há ' + Math.floor(min / 60) + ' h ' + (min % 60) + ' min';
+  }
+
+  function cartao(p) {
+    var r = ROTULO[p.status] || [p.status, 'off'], prox = proximo(p), aberto = !/concluido|cancelado/.test(p.status);
+    var tel = (p.cliente_telefone || '').replace(/\D/g, '');
+    var pagTxt = A.PAGAMENTO[p.pagamento] || p.pagamento;
+    var pagSelo = p.pagamento === 'pix'
+      ? (p.pago ? '<span class="pill ok">Pix pago</span>' : '<span class="pill warn">Pix a confirmar</span>')
+      : (p.pago ? '<span class="pill ok">Pago</span>' : '<span class="pill off">' + esc(pagTxt) + (p.modo === 'entrega' ? ' na entrega' : ' no balcão') + '</span>');
+    return '<article class="ped st-' + p.status + '" data-ped="' + p.id + '">' +
+      '<div class="ped-top"><span class="ped-num">#' + p.numero + '</span><span class="ped-hora">' + hora(p.created_at) + ' · ' + ha(p.created_at) + '</span>' +
+        '<span class="pill ' + r[1] + '">' + r[0] + '</span></div>' +
+      '<div class="ped-cli">' + esc(p.cliente_nome) + (tel ? ' · <a href="' + A.linkWhats(tel, 'Olá, ' + p.cliente_nome + '! Sobre seu pedido #' + p.numero + ' na ' + loja.nome + '.') + '" target="_blank" rel="noopener">' + esc(A.numBonito(tel)) + '</a>' : '') + '</div>' +
+      '<div class="ped-end">' + (p.modo === 'entrega'
+        ? '<strong>Entrega:</strong> ' + esc(p.endereco || '') + (p.referencia ? '<br>Referência: ' + esc(p.referencia) : '')
+        : '<strong>Retirada no balcão</strong>') + '</div>' +
+      '<ul class="ped-itens">' + (p.pedido_itens || []).map(function (i) {
+        return '<li><span><b>' + i.quantidade + 'x</b> ' + esc(i.nome) + '</span><span>' + fmt(i.quantidade * i.preco_unit) + '</span></li>';
+      }).join('') + '</ul>' +
+      (p.observacao ? '<p class="ped-obs">Obs.: ' + esc(p.observacao) + '</p>' : '') +
+      '<div class="ped-pag"><strong>' + fmt(p.total) + '</strong>' + pagSelo +
+        (p.pagamento === 'dinheiro' && p.troco ? '<span class="pill off">Troco p/ R$ ' + esc(p.troco) + '</span>' : '') +
+        (!p.pago && p.status !== 'cancelado' ? '<button class="btn soft mini" type="button" data-pago="' + p.id + '">Marcar como pago</button>' : '') + '</div>' +
+      (aberto ? '<div class="ped-acoes">' +
+        (prox ? '<button class="btn" type="button" data-status="' + prox[0] + '" data-id="' + p.id + '">' + prox[1] + '</button>' : '') +
+        '<button class="btn danger" type="button" data-cancelar="' + p.id + '">Cancelar</button></div>' : '') +
+      '</article>';
+  }
+
+  function renderPedidos(novos) {
+    var grupos = { novos: [], andamento: [], concluidos: [] };
+    pedidos.forEach(function (p) {
+      if (p.status === 'recebido') grupos.novos.push(p);
+      else if (/preparo|saiu|pronto/.test(p.status)) grupos.andamento.push(p);
+      else grupos.concluidos.push(p);
+    });
+    grupos.novos.reverse();
+    grupos.andamento.reverse();
+    $('g-novos').innerHTML = grupos.novos.length ? grupos.novos.map(cartao).join('') : '<p class="vazio">Nenhum pedido novo. Quando chegar um, ele aparece aqui na hora' + (somLigado ? ' com som.' : '. Toque em "Ativar som" para ser avisado.') + '</p>';
+    $('g-andamento').innerHTML = grupos.andamento.length ? grupos.andamento.map(cartao).join('') : '<p class="vazio">Nada em andamento.</p>';
+    $('g-concluidos').innerHTML = grupos.concluidos.map(cartao).join('') || '<p class="vazio">Nenhum ainda hoje.</p>';
+    $('sum-concluidos').textContent = 'Concluídos e cancelados hoje (' + grupos.concluidos.length + ')';
+    var n = $('n-novos');
+    n.textContent = grupos.novos.length;
+    n.hidden = !grupos.novos.length;
+  }
+
+  async function mudar(id, campos, ok) {
+    var p = pedidos.filter(function (x) { return x.id === id; })[0];
+    if (!p) return;
+    var antes = {};
+    Object.keys(campos).forEach(function (k) { antes[k] = p[k]; p[k] = campos[k]; });
+    renderPedidos([]);
+    renderHoje();
+    var r = await db.from('pedidos').update(campos).eq('id', id);
+    if (r.error) {
+      Object.keys(antes).forEach(function (k) { p[k] = antes[k]; });
+      renderPedidos([]);
+      renderHoje();
+      return A.aviso('Não foi possível salvar. Confira a internet e tente de novo.');
+    }
+    if (ok) A.aviso(ok);
+  }
+  var confirmaCancelar = null;
+  $('tela-painel').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.status) mudar(b.dataset.id, { status: b.dataset.status }, 'Pedido atualizado. O cliente já vê.');
+    else if (b.dataset.pago) mudar(b.dataset.pago, { pago: true }, 'Pagamento marcado como recebido.');
+    else if (b.dataset.cancelar) {
+      if (confirmaCancelar === b.dataset.cancelar) {
+        confirmaCancelar = null;
+        mudar(b.dataset.cancelar, { status: 'cancelado' }, 'Pedido cancelado.');
+      } else {
+        confirmaCancelar = b.dataset.cancelar;
+        b.textContent = 'Toque de novo para cancelar';
+        setTimeout(function () { if (confirmaCancelar === b.dataset.cancelar) { confirmaCancelar = null; b.textContent = 'Cancelar'; } }, 4000);
+      }
+    }
+  });
+  setInterval(function () { if (loja && !$('tela-painel').hidden && $('aba-pedidos').hidden === false) renderPedidos([]); }, 60000);
+
+  // ---------- Hoje ----------
+  function renderHoje() {
+    var hoje = inicioDoDia();
+    var validos = pedidos.filter(function (p) { return p.created_at >= hoje && p.status !== 'cancelado'; });
+    var total = validos.reduce(function (s, p) { return s + Number(p.total); }, 0);
+    var pendPix = pedidos.filter(function (p) { return p.pagamento === 'pix' && !p.pago && p.status !== 'cancelado'; }).length;
+    $('numeros').innerHTML =
+      '<div class="num"><span>Pedidos</span><strong>' + validos.length + '</strong></div>' +
+      '<div class="num"><span>Faturamento</span><strong>' + fmt(total) + '</strong></div>' +
+      '<div class="num"><span>Ticket médio</span><strong>' + fmt(validos.length ? total / validos.length : 0) + '</strong></div>' +
+      '<div class="num"><span>Pix a confirmar</span><strong>' + pendPix + '</strong></div>';
+    var cont = {};
+    validos.forEach(function (p) { (p.pedido_itens || []).forEach(function (i) { cont[i.nome] = (cont[i.nome] || 0) + i.quantidade; }); });
+    var top = Object.keys(cont).sort(function (a, b) { return cont[b] - cont[a]; }).slice(0, 5);
+    var max = top.length ? cont[top[0]] : 1;
+    $('ranking').innerHTML = top.length ? top.map(function (n) {
+      return '<li><span>' + esc(n) + '</span><strong>' + cont[n] + '</strong><span class="barra"><i style="width:' + Math.round(cont[n] / max * 100) + '%"></i></span></li>';
+    }).join('') : '<li class="vazio" style="display:block">Ainda sem vendas hoje.</li>';
+  }
+
+  // ---------- Cardápio ----------
+  async function carregarCardapio() {
+    $('lista-cardapio').innerHTML = '<div class="state">Carregando cardápio…</div>';
+    var res = await Promise.all([
+      db.from('categorias').select('id, nome, ordem').eq('loja_id', loja.id).order('ordem'),
+      db.from('produtos').select('id, categoria_id, nome, preco, disponivel, ordem').eq('loja_id', loja.id).order('ordem')
+    ]);
+    if (res[0].error || res[1].error) { $('lista-cardapio').innerHTML = '<p class="vazio">Não foi possível carregar o cardápio.</p>'; return; }
+    $('lista-cardapio').innerHTML = res[0].data.map(function (c) {
+      var itens = res[1].data.filter(function (p) { return p.categoria_id === c.id; });
+      return '<section class="cat-bloco"><h3>' + esc(c.nome) + '</h3>' + itens.map(function (p) {
+        var preco = Number(p.preco).toFixed(2).replace('.', ',');
+        return '<div class="prod' + (p.disponivel ? '' : ' off') + '" data-prod="' + p.id + '">' +
+          '<span class="prod-nome">' + esc(p.nome) + '</span>' +
+          '<label class="sr" for="pr-' + p.id + '">Preço de ' + esc(p.nome) + '</label>' +
+          '<input type="text" inputmode="decimal" id="pr-' + p.id + '" data-preco="' + p.id + '" value="' + preco + '" data-antes="' + preco + '">' +
+          '<label class="switch"><input type="checkbox" data-disp="' + p.id + '"' + (p.disponivel ? ' checked' : '') + '><span class="trilho"></span><span>' + (p.disponivel ? 'Disponível' : 'Esgotado') + '</span></label>' +
+          '</div>';
+      }).join('') + '</section>';
+    }).join('');
+  }
+  $('lista-cardapio').addEventListener('change', async function (e) {
+    var t = e.target;
+    if (t.dataset.disp) {
+      var on = t.checked, linha = t.closest('.prod');
+      linha.classList.toggle('off', !on);
+      t.parentNode.lastChild.textContent = on ? 'Disponível' : 'Esgotado';
+      var r = await db.from('produtos').update({ disponivel: on }).eq('id', t.dataset.disp);
+      if (r.error) { t.checked = !on; linha.classList.toggle('off', on); t.parentNode.lastChild.textContent = !on ? 'Disponível' : 'Esgotado'; return A.aviso('Não foi possível salvar.'); }
+      A.aviso(on ? 'Item disponível de novo.' : 'Item marcado como esgotado.');
+    }
+    if (t.dataset.preco) {
+      var v = Number(t.value.replace(/\s/g, '').replace('R$', '').replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+      if (!isFinite(v) || v < 0 || v > 9999) { t.value = t.dataset.antes; return A.aviso('Preço inválido. Use algo como 18,50.'); }
+      var txt = v.toFixed(2).replace('.', ',');
+      var r2 = await db.from('produtos').update({ preco: v }).eq('id', t.dataset.preco);
+      if (r2.error) { t.value = t.dataset.antes; return A.aviso('Não foi possível salvar o preço.'); }
+      t.value = txt;
+      t.dataset.antes = txt;
+      A.aviso('Preço salvo: ' + fmt(v));
+    }
+  });
+
+  // ---------- Abas ----------
+  var ABAS = { pedidos: 'aba-pedidos', cardapio: 'aba-cardapio', hoje: 'aba-hoje' };
+  Object.keys(ABAS).forEach(function (k) {
+    $('tab-' + k).addEventListener('click', function () {
+      Object.keys(ABAS).forEach(function (j) {
+        $('tab-' + j).setAttribute('aria-selected', j === k ? 'true' : 'false');
+        $(ABAS[j]).hidden = j !== k;
+      });
+      if (k === 'cardapio') carregarCardapio();
+      if (k === 'hoje') renderHoje();
+    });
+  });
+
+  mostrar('carregando');
+  db.auth.getSession().then(function (r) {
+    var u = r.data && r.data.session ? r.data.session.user : null;
+    if (!u) { usuario = null; mostrar('tela-login'); }
+  });
+})();
+</script>
+</body>
+</html>
