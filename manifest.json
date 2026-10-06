@@ -1,0 +1,17 @@
+{
+  "name": "Painel da lanchonete",
+  "short_name": "Painel",
+  "description": "Pedidos, cardápio e avisos da sua lanchonete.",
+  "lang": "pt-BR",
+  "start_url": "painel.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1B211D",
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

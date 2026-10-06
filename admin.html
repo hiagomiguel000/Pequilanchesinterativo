@@ -225,6 +225,102 @@ window.APP = (function () {
     location.href = para || 'entrar.html';
   }
 
+  // ---------- Horário da loja (fuso de Tocantins) ----------
+  var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  var DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  function agoraLocal() {
+    var p = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Araguaina', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+    var dia = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday);
+    return { dia: dia, min: Number(p.hour) * 60 + Number(p.minute) };
+  }
+  function paraMin(h) { var m = /^(\d{1,2}):(\d{2})/.exec(h || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+  function faixa(horarios, dia) {
+    var h = horarios && horarios[String(dia)];
+    if (!h || typeof h !== 'object') return null;
+    var a = paraMin(h.abre), f = paraMin(h.fecha);
+    return a === null || f === null ? null : { abre: a, fecha: f, txtAbre: h.abre.slice(0, 5), txtFecha: h.fecha.slice(0, 5) };
+  }
+  function dentroDoHorario(horarios) {
+    var t = agoraLocal(), hoje = faixa(horarios, t.dia), ontem = faixa(horarios, (t.dia + 6) % 7);
+    if (hoje && ((hoje.fecha > hoje.abre && t.min >= hoje.abre && t.min < hoje.fecha) || (hoje.fecha <= hoje.abre && t.min >= hoje.abre))) return hoje;
+    if (ontem && ontem.fecha <= ontem.abre && t.min < ontem.fecha) return ontem;
+    return null;
+  }
+  function estadoLoja(l) {
+    if (!l.ativa) return { aberta: false, texto: 'Indisponível no momento' };
+    if (!l.abrir_auto) return { aberta: !!l.aberta, texto: l.aberta ? 'Aberto agora' : 'Fechado agora' };
+    if (!l.aberta) return { aberta: false, texto: 'Pausado agora' };
+    var f = dentroDoHorario(l.horarios || {});
+    if (f) return { aberta: true, texto: 'Aberto agora · fecha às ' + f.txtFecha };
+    var t = agoraLocal();
+    for (var i = 0; i < 7; i++) {
+      var d = (t.dia + i) % 7, fx = faixa(l.horarios || {}, d);
+      if (!fx || (i === 0 && fx.abre <= t.min)) continue;
+      return { aberta: false, texto: 'Fechado agora · abre ' + (i === 0 ? 'hoje' : i === 1 ? 'amanhã' : DIAS[d]) + ' às ' + fx.txtAbre };
+    }
+    return { aberta: false, texto: 'Fechado agora' };
+  }
+
+  // ---------- Fotos: reduz no celular antes de enviar ----------
+  function reduzirImagem(arquivo, lado) {
+    return new Promise(function (ok, erro) {
+      var img = new Image(), url = URL.createObjectURL(arquivo);
+      img.onload = function () {
+        var fator = Math.min(1, (lado || 900) / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * fator); c.height = Math.round(img.height * fator);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { b ? ok(b) : erro(new Error('Não foi possível ler a imagem.')); }, 'image/jpeg', 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); erro(new Error('Arquivo de imagem inválido.')); };
+      img.src = url;
+    });
+  }
+  async function enviarFoto(lojaId, arquivo, prefixo, lado) {
+    var blob = await reduzirImagem(arquivo, lado);
+    var caminho = lojaId + '/' + prefixo + '-' + Date.now() + '.jpg';
+    var r = await db.storage.from('fotos').upload(caminho, blob, { contentType: 'image/jpeg', upsert: true, cacheControl: '31536000' });
+    if (r.error) throw r.error;
+    return db.storage.from('fotos').getPublicUrl(caminho).data.publicUrl;
+  }
+
+  // ---------- Avisos de pedido novo (notificação no celular) ----------
+  var VAPID_PUBLICO = 'BDamUn6Jzw564LwcyvPZUvCZyJne3ZhsbV6Bt9im4m-EgNjJuI8YhbBiTL4cc4l0RnKst-TQgmx_hXGHmpL5v6Q';
+  function b64uParaBytes(s) {
+    var b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+    return Uint8Array.from(b, function (c) { return c.charCodeAt(0); });
+  }
+  function avisosSuportados() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  async function inscricaoAtual() {
+    if (!avisosSuportados()) return null;
+    var reg = await navigator.serviceWorker.getRegistration();
+    return reg ? reg.pushManager.getSubscription() : null;
+  }
+  async function ativarAvisos(lojaId) {
+    if (!avisosSuportados()) throw new Error('Este navegador não aceita notificações. No iPhone, primeiro adicione o painel à Tela de Início.');
+    var perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('As notificações foram bloqueadas. Libere nas configurações do navegador para este site.');
+    var reg;
+    try { reg = await navigator.serviceWorker.register('sw.js'); }
+    catch (e) { throw new Error('Falta o arquivo sw.js no site. Envie ele junto com as outras páginas.'); }
+    await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription() ||
+      await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uParaBytes(VAPID_PUBLICO) });
+    var j = sub.toJSON();
+    var r = await db.rpc('inscrever_push', { p_loja: lojaId, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_url: location.href.split('#')[0] });
+    if (r.error) throw r.error;
+    return true;
+  }
+  async function desativarAvisos() {
+    var sub = await inscricaoAtual();
+    if (!sub) return;
+    await db.rpc('cancelar_push', { p_endpoint: sub.endpoint });
+    await sub.unsubscribe();
+  }
+
   var STATUS = {
     recebido: 'Recebido', preparo: 'Em preparo', saiu: 'Saiu para entrega',
     pronto: 'Pronto para retirar', concluido: 'Concluído', cancelado: 'Cancelado'
@@ -235,7 +331,9 @@ window.APP = (function () {
     db: db, $: $, fmt: fmt, esc: esc, semAcento: semAcento, slugAtual: slugAtual, iniciais: iniciais,
     numBonito: numBonito, linkWhats: linkWhats, pixPayload: pixPayload, qrSvg: qrSvg,
     aviso: aviso, copiar: copiar, guardar: guardar, ler: ler, STATUS: STATUS, PAGAMENTO: PAGAMENTO,
-    DESTINO: DESTINO, voltaSegura: voltaSegura, perfil: perfil, exigir: exigir, sair: sair
+    DESTINO: DESTINO, voltaSegura: voltaSegura, perfil: perfil, exigir: exigir, sair: sair,
+    DIAS: DIAS, DIAS_CURTOS: DIAS_CURTOS, estadoLoja: estadoLoja, enviarFoto: enviarFoto,
+    avisosSuportados: avisosSuportados, inscricaoAtual: inscricaoAtual, ativarAvisos: ativarAvisos, desativarAvisos: desativarAvisos
   };
 })();
 

@@ -9,6 +9,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="comum.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1B211D">
+<link rel="apple-touch-icon" href="icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 /* Layout: painel de cozinha. Barra escura fixa com a loja e abrir/fechar; abas; pedidos em cartões que viram grade no tablet. */
 .bar { position: sticky; top: 0; z-index: 10; }
@@ -82,6 +86,43 @@ select { font: 400 16px var(--font-body); color: var(--ink); background: var(--b
 .ranking .barra { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--surface); overflow: hidden; }
 .ranking .barra i { display: block; height: 100%; background: var(--dark); border-radius: 99px; }
 
+.prod-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.prod-foto { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; background: var(--surface); }
+.foto-campo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.foto-campo img { width: 72px; height: 72px; border-radius: 12px; object-fit: cover; border: 1px solid var(--line); }
+.foto-vazia { width: 72px; height: 72px; border-radius: 12px; border: 1px dashed var(--muted); display: grid; place-items: center; color: var(--muted); font-size: 12px; text-align: center; }
+.arquivo { position: relative; overflow: hidden; }
+.arquivo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.opc-editor { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 10px; }
+.opc-editor h4 { margin: 0; font-size: 15px; }
+.g-ed { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--bg); display: grid; gap: 8px; }
+.g-ed-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.g-ed-cab strong { margin-right: auto; }
+.o-ed { display: grid; grid-template-columns: minmax(0, 1fr) 96px auto auto; gap: 8px; align-items: center; }
+.o-ed input[type="text"], .mini-form input, .mini-form select { padding: 8px 10px; font-size: 15px; }
+.mini-form { display: grid; grid-template-columns: minmax(0, 1fr) 96px auto; gap: 8px; align-items: center; }
+.mini-form.grupo-novo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.horas { display: grid; gap: 8px; }
+.hora-linha { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; }
+.hora-linha input[type="time"] { font: 400 16px var(--font-body); padding: 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+.hora-linha input[type="time"]:disabled { opacity: .45; }
+.check { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--dark); }
+.aviso-push { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--warn-soft); color: var(--warn-ink); border-radius: 14px; padding: 12px 14px; font-weight: 600; }
+.aviso-push .btn { margin-left: auto; }
+.ped-itens small { display: block; color: var(--muted); font-size: 13px; font-weight: 600; }
+.bar .mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (max-width: 520px) {
+  .o-ed { grid-template-columns: minmax(0, 1fr) 84px; }
+  .mini-form { grid-template-columns: 1fr 1fr; }
+  .mini-form.grupo-novo { grid-template-columns: 1fr; }
+  .mini-form .btn { grid-column: 1 / -1; }
+  .o-ed .switch { justify-self: start; }
+  .hora-linha { grid-template-columns: 1fr 1fr; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .hora-linha .check { grid-column: 1 / -1; }
+  .hora-linha .ate, .hora-linha input:disabled { display: none; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .ped.novo { animation: chega 1.2s ease-out 2; }
   @keyframes chega { 0% { box-shadow: 0 0 0 0 rgba(233, 162, 27, .6); } 100% { box-shadow: 0 0 0 14px rgba(233, 162, 27, 0); } }
@@ -122,6 +163,7 @@ select { font: 400 16px var(--font-body); color: var(--ink); background: var(--b
   </nav>
 
   <main class="wide conteudo" id="aba-pedidos" role="tabpanel" aria-labelledby="tab-pedidos">
+    <div class="aviso-push" id="aviso-push" hidden><span>Ative os avisos para saber de cada pedido novo mesmo com o celular bloqueado.</span><button class="btn" type="button" id="ativar-push-topo">Ativar avisos</button></div>
     <section class="secao"><h2>Novos</h2><div class="grade" id="g-novos"></div></section>
     <section class="secao"><h2>Em andamento</h2><div class="grade" id="g-andamento"></div></section>
     <section class="secao">
@@ -158,12 +200,39 @@ select { font: 400 16px var(--font-body); color: var(--ink); background: var(--b
       </div>
     </section>
 
+    <section class="block" aria-labelledby="h-avisos">
+      <h3 id="h-avisos">Avisos de pedido novo</h3>
+      <p class="hint" id="push-status">Verificando…</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" type="button" id="ativar-push">Ativar avisos neste aparelho</button>
+        <button class="btn ghost" type="button" id="desativar-push" hidden>Desativar avisos</button>
+      </div>
+      <p class="hint">Ative em cada celular ou tablet que deve tocar. No iPhone, primeiro toque em Compartilhar e "Adicionar à Tela de Início", e abra o painel por esse ícone.</p>
+    </section>
+
+    <section class="block" aria-labelledby="h-logo">
+      <h3 id="h-logo">Logo da loja</h3>
+      <div class="foto-campo">
+        <div id="logo-prev"></div>
+        <label class="btn soft arquivo">Escolher imagem<input type="file" id="logo-arquivo" accept="image/*"></label>
+        <button class="btn danger" type="button" id="logo-remover" hidden>Remover logo</button>
+      </div>
+    </section>
+
+    <form class="block" id="form-horas" novalidate aria-labelledby="h-horas">
+      <h3 id="h-horas">Horário de funcionamento</h3>
+      <label class="check"><input type="checkbox" id="h-auto"> Abrir e fechar sozinho nestes horários</label>
+      <p class="hint">Com isso ligado, o cardápio só aceita pedidos dentro do horário. O botão do topo vira "pausar", para um imprevisto.</p>
+      <div class="horas" id="horas"></div>
+      <div><button class="btn" type="submit" id="salvar-horas">Salvar horários</button></div>
+    </form>
+
     <form class="block" id="form-loja" novalidate aria-labelledby="h-loja">
       <h3 id="h-loja">Dados da loja</h3>
       <div class="grid2">
         <div class="field"><label for="c-descricao">Frase de apresentação</label><input id="c-descricao" type="text" placeholder="Lanches na chapa, porções e açaí."></div>
         <div class="field"><label for="c-endereco">Endereço</label><input id="c-endereco" type="text"></div>
-        <div class="field"><label for="c-horario">Horário de funcionamento</label><input id="c-horario" type="text" placeholder="Terça a domingo, das 18h às 23h30"></div>
+        <div class="field"><label for="c-horario">Horário escrito no cardápio</label><input id="c-horario" type="text" placeholder="Terça a domingo, das 18h às 23h30"></div>
         <div class="field"><label for="c-whatsapp">WhatsApp da loja</label><input id="c-whatsapp" type="tel" inputmode="tel" placeholder="(63) 9 9999-9999"></div>
         <div class="field"><label for="c-taxa">Taxa de entrega (R$)</label><input id="c-taxa" type="text" inputmode="decimal" placeholder="5,00"></div>
         <div class="field"><label for="c-tempo">Tempo médio de entrega</label><input id="c-tempo" type="text" placeholder="30 a 45 min"></div>
@@ -308,6 +377,102 @@ window.APP = (function () {
     location.href = para || 'entrar.html';
   }
 
+  // ---------- Horário da loja (fuso de Tocantins) ----------
+  var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  var DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  function agoraLocal() {
+    var p = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Araguaina', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+    var dia = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday);
+    return { dia: dia, min: Number(p.hour) * 60 + Number(p.minute) };
+  }
+  function paraMin(h) { var m = /^(\d{1,2}):(\d{2})/.exec(h || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+  function faixa(horarios, dia) {
+    var h = horarios && horarios[String(dia)];
+    if (!h || typeof h !== 'object') return null;
+    var a = paraMin(h.abre), f = paraMin(h.fecha);
+    return a === null || f === null ? null : { abre: a, fecha: f, txtAbre: h.abre.slice(0, 5), txtFecha: h.fecha.slice(0, 5) };
+  }
+  function dentroDoHorario(horarios) {
+    var t = agoraLocal(), hoje = faixa(horarios, t.dia), ontem = faixa(horarios, (t.dia + 6) % 7);
+    if (hoje && ((hoje.fecha > hoje.abre && t.min >= hoje.abre && t.min < hoje.fecha) || (hoje.fecha <= hoje.abre && t.min >= hoje.abre))) return hoje;
+    if (ontem && ontem.fecha <= ontem.abre && t.min < ontem.fecha) return ontem;
+    return null;
+  }
+  function estadoLoja(l) {
+    if (!l.ativa) return { aberta: false, texto: 'Indisponível no momento' };
+    if (!l.abrir_auto) return { aberta: !!l.aberta, texto: l.aberta ? 'Aberto agora' : 'Fechado agora' };
+    if (!l.aberta) return { aberta: false, texto: 'Pausado agora' };
+    var f = dentroDoHorario(l.horarios || {});
+    if (f) return { aberta: true, texto: 'Aberto agora · fecha às ' + f.txtFecha };
+    var t = agoraLocal();
+    for (var i = 0; i < 7; i++) {
+      var d = (t.dia + i) % 7, fx = faixa(l.horarios || {}, d);
+      if (!fx || (i === 0 && fx.abre <= t.min)) continue;
+      return { aberta: false, texto: 'Fechado agora · abre ' + (i === 0 ? 'hoje' : i === 1 ? 'amanhã' : DIAS[d]) + ' às ' + fx.txtAbre };
+    }
+    return { aberta: false, texto: 'Fechado agora' };
+  }
+
+  // ---------- Fotos: reduz no celular antes de enviar ----------
+  function reduzirImagem(arquivo, lado) {
+    return new Promise(function (ok, erro) {
+      var img = new Image(), url = URL.createObjectURL(arquivo);
+      img.onload = function () {
+        var fator = Math.min(1, (lado || 900) / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * fator); c.height = Math.round(img.height * fator);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { b ? ok(b) : erro(new Error('Não foi possível ler a imagem.')); }, 'image/jpeg', 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); erro(new Error('Arquivo de imagem inválido.')); };
+      img.src = url;
+    });
+  }
+  async function enviarFoto(lojaId, arquivo, prefixo, lado) {
+    var blob = await reduzirImagem(arquivo, lado);
+    var caminho = lojaId + '/' + prefixo + '-' + Date.now() + '.jpg';
+    var r = await db.storage.from('fotos').upload(caminho, blob, { contentType: 'image/jpeg', upsert: true, cacheControl: '31536000' });
+    if (r.error) throw r.error;
+    return db.storage.from('fotos').getPublicUrl(caminho).data.publicUrl;
+  }
+
+  // ---------- Avisos de pedido novo (notificação no celular) ----------
+  var VAPID_PUBLICO = 'BDamUn6Jzw564LwcyvPZUvCZyJne3ZhsbV6Bt9im4m-EgNjJuI8YhbBiTL4cc4l0RnKst-TQgmx_hXGHmpL5v6Q';
+  function b64uParaBytes(s) {
+    var b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+    return Uint8Array.from(b, function (c) { return c.charCodeAt(0); });
+  }
+  function avisosSuportados() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  async function inscricaoAtual() {
+    if (!avisosSuportados()) return null;
+    var reg = await navigator.serviceWorker.getRegistration();
+    return reg ? reg.pushManager.getSubscription() : null;
+  }
+  async function ativarAvisos(lojaId) {
+    if (!avisosSuportados()) throw new Error('Este navegador não aceita notificações. No iPhone, primeiro adicione o painel à Tela de Início.');
+    var perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('As notificações foram bloqueadas. Libere nas configurações do navegador para este site.');
+    var reg;
+    try { reg = await navigator.serviceWorker.register('sw.js'); }
+    catch (e) { throw new Error('Falta o arquivo sw.js no site. Envie ele junto com as outras páginas.'); }
+    await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription() ||
+      await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uParaBytes(VAPID_PUBLICO) });
+    var j = sub.toJSON();
+    var r = await db.rpc('inscrever_push', { p_loja: lojaId, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_url: location.href.split('#')[0] });
+    if (r.error) throw r.error;
+    return true;
+  }
+  async function desativarAvisos() {
+    var sub = await inscricaoAtual();
+    if (!sub) return;
+    await db.rpc('cancelar_push', { p_endpoint: sub.endpoint });
+    await sub.unsubscribe();
+  }
+
   var STATUS = {
     recebido: 'Recebido', preparo: 'Em preparo', saiu: 'Saiu para entrega',
     pronto: 'Pronto para retirar', concluido: 'Concluído', cancelado: 'Cancelado'
@@ -318,7 +483,9 @@ window.APP = (function () {
     db: db, $: $, fmt: fmt, esc: esc, semAcento: semAcento, slugAtual: slugAtual, iniciais: iniciais,
     numBonito: numBonito, linkWhats: linkWhats, pixPayload: pixPayload, qrSvg: qrSvg,
     aviso: aviso, copiar: copiar, guardar: guardar, ler: ler, STATUS: STATUS, PAGAMENTO: PAGAMENTO,
-    DESTINO: DESTINO, voltaSegura: voltaSegura, perfil: perfil, exigir: exigir, sair: sair
+    DESTINO: DESTINO, voltaSegura: voltaSegura, perfil: perfil, exigir: exigir, sair: sair,
+    DIAS: DIAS, DIAS_CURTOS: DIAS_CURTOS, estadoLoja: estadoLoja, enviarFoto: enviarFoto,
+    avisosSuportados: avisosSuportados, inscricaoAtual: inscricaoAtual, ativarAvisos: ativarAvisos, desativarAvisos: desativarAvisos
   };
 })();
 
@@ -330,7 +497,7 @@ window.APP = (function () {
   if (!eu) return;
   var loja = null, pedidos = [], conhecidos = {}, canal = null;
   var somLigado = false, audio = null, pisca = null;
-  var CAMPOS_LOJA = 'id, slug, nome, aberta, ativa, taxa_entrega, descricao, endereco, horario, whatsapp, tempo_entrega, pix_chave, pix_nome, pix_cidade, owner_id';
+  var CAMPOS_LOJA = 'id, slug, nome, aberta, ativa, taxa_entrega, descricao, endereco, horario, whatsapp, tempo_entrega, pix_chave, pix_nome, pix_cidade, owner_id, logo_url, abrir_auto, horarios';
 
   // ---------- Qual loja abrir ----------
   var pedida = new URLSearchParams(location.search).get('loja');
@@ -360,18 +527,23 @@ window.APP = (function () {
 
   // ---------- Abrir / fechar ----------
   function renderAberta() {
-    var b = $('btn-aberta');
-    b.textContent = loja.aberta ? 'Aberta · fechar' : 'Fechada · abrir';
-    b.className = 'btn ' + (loja.aberta ? 'aberta' : 'fechada');
+    var b = $('btn-aberta'), e = A.estadoLoja(loja);
+    if (!loja.abrir_auto) b.textContent = loja.aberta ? 'Aberta · fechar' : 'Fechada · abrir';
+    else if (!loja.aberta) b.textContent = 'Pausada · retomar';
+    else b.textContent = e.aberta ? 'Aberta · pausar' : 'Fora do horário · pausar';
+    b.className = 'btn ' + (e.aberta ? 'aberta' : 'fechada');
     b.setAttribute('aria-pressed', loja.aberta ? 'true' : 'false');
+    $('mark').innerHTML = loja.logo_url ? '<img src="' + esc(loja.logo_url) + '" alt="">' : esc(A.iniciais(loja.nome));
   }
+  setInterval(renderAberta, 60000);
   $('btn-aberta').addEventListener('click', async function () {
     var novo = !loja.aberta;
     var x = await db.from('lojas').update({ aberta: novo }).eq('id', loja.id);
     if (x.error) return A.aviso('Não foi possível mudar. Tente de novo.');
     loja.aberta = novo;
     renderAberta();
-    A.aviso(novo ? 'Loja aberta. O cardápio já aceita pedidos.' : 'Loja fechada. O cardápio não aceita novos pedidos.');
+    if (loja.abrir_auto) A.aviso(novo ? 'Pedidos retomados. A loja segue o horário automático.' : 'Pedidos pausados. Ninguém consegue pedir até você retomar.');
+    else A.aviso(novo ? 'Loja aberta. O cardápio já aceita pedidos.' : 'Loja fechada. O cardápio não aceita novos pedidos.');
   });
 
   // ---------- Som e tela ligada ----------
@@ -408,7 +580,7 @@ window.APP = (function () {
   function inicioDoDia() { var d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); }
   async function carregarPedidos(primeira) {
     var x = await db.from('pedidos')
-      .select('id, numero, status, pago, cliente_nome, cliente_telefone, modo, endereco, referencia, pagamento, troco, observacao, subtotal, taxa, total, created_at, pedido_itens(nome, quantidade, preco_unit)')
+      .select('id, numero, status, pago, cliente_nome, cliente_telefone, modo, endereco, referencia, pagamento, troco, observacao, subtotal, taxa, total, created_at, pedido_itens(nome, quantidade, preco_unit, opcoes, obs)')
       .eq('loja_id', loja.id)
       .or('created_at.gte.' + inicioDoDia() + ',status.in.(recebido,preparo,saiu,pronto)')
       .order('created_at', { ascending: false }).limit(300);
@@ -474,7 +646,8 @@ window.APP = (function () {
         ? '<strong>Entrega:</strong> ' + esc(p.endereco || '') + (p.referencia ? '<br>Referência: ' + esc(p.referencia) : '')
         : '<strong>Retirada no balcão</strong>') + '</div>' +
       '<ul class="ped-itens">' + (p.pedido_itens || []).map(function (i) {
-        return '<li><span><b>' + i.quantidade + 'x</b> ' + esc(i.nome) + '</span><span>' + fmt(i.quantidade * i.preco_unit) + '</span></li>';
+        var extra = [(i.opcoes || []).map(function (o) { return o.nome; }).join(', '), i.obs ? 'Obs.: ' + i.obs : ''].filter(Boolean).join(' · ');
+        return '<li><span><b>' + i.quantidade + 'x</b> ' + esc(i.nome) + (extra ? '<small>' + esc(extra) + '</small>' : '') + '</span><span>' + fmt(i.quantidade * i.preco_unit) + '</span></li>';
       }).join('') + '</ul>' +
       (p.observacao ? '<p class="ped-obs">Obs.: ' + esc(p.observacao) + '</p>' : '') +
       '<div class="ped-pag"><strong>' + fmt(p.total) + '</strong>' + selo +
@@ -552,21 +725,57 @@ window.APP = (function () {
     }).join('') : '<li class="vazio" style="display:block">Ainda sem vendas hoje.</li>';
   }
 
-  // ---------- Cardápio: editor completo ----------
+  // ---------- Cardápio: editor completo (itens, fotos, opções) ----------
   var CATS = [], PRODS = [], editando = null, confirmaExcluir = null;
   function precoTxt(v) { return Number(v).toFixed(2).replace('.', ','); }
   function lerPreco(t) {
-    var v = Number(String(t).replace(/\s/g, '').replace('R$', '').replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+    var v = Number(String(t).replace(/\s/g, '').replace('R$', '').replace('+', '').replace(/\.(?=\d{3})/g, '').replace(',', '.'));
     return isFinite(v) && v >= 0 && v <= 9999 ? Math.round(v * 100) / 100 : null;
   }
-  async function carregarCardapio() {
+  async function carregarCardapio(foco) {
     var res = await Promise.all([
       db.from('categorias').select('id, nome, nota, ordem').eq('loja_id', loja.id).order('ordem'),
-      db.from('produtos').select('id, categoria_id, nome, descricao, preco, tag, disponivel, ordem').eq('loja_id', loja.id).order('ordem')
+      db.from('produtos').select('id, categoria_id, nome, descricao, preco, tag, disponivel, ordem, foto_url, grupos_opcoes(id, nome, minimo, maximo, ordem, opcoes(id, nome, preco_extra, disponivel, ordem))').eq('loja_id', loja.id).order('ordem')
     ]);
     if (res[0].error || res[1].error) { $('lista-cardapio').innerHTML = '<p class="vazio">Não foi possível carregar o cardápio.</p>'; return; }
-    CATS = res[0].data; PRODS = res[1].data;
-    renderCardapio();
+    CATS = res[0].data;
+    PRODS = res[1].data;
+    PRODS.forEach(function (p) {
+      p.grupos = (p.grupos_opcoes || []).sort(function (a, b) { return a.ordem - b.ordem; });
+      p.grupos.forEach(function (g) { g.opcoes = (g.opcoes || []).sort(function (a, b) { return a.ordem - b.ordem; }); });
+    });
+    renderCardapio(foco);
+  }
+  function regra(g) {
+    if (g.minimo > 0 && g.maximo === 1) return 'Obrigatório · escolher 1';
+    if (g.minimo > 0) return 'Obrigatório · ' + g.minimo + ' a ' + g.maximo;
+    if (g.maximo === 1) return 'Opcional · escolher 1';
+    return 'Opcional · até ' + g.maximo;
+  }
+  function editorOpcoes(p) {
+    return '<div class="editor"><div class="opc-editor" style="border:0;padding:0"><h4>Opções e adicionais de ' + esc(p.nome) + '</h4>' +
+      '<p class="hint">Exemplos: "Sabor" (escolher 1), "Tamanho" (escolher 1, com preço), "Adicionais" (vários, com preço), "Quer tirar algo?" (vários, sem preço).</p>' +
+      p.grupos.map(function (g) {
+        return '<div class="g-ed"><div class="g-ed-cab"><strong>' + esc(g.nome) + '</strong><span class="pill off">' + regra(g) + '</span>' +
+          '<button class="btn danger mini" type="button" data-excluir-grupo="' + g.id + '">Excluir grupo</button></div>' +
+          g.opcoes.map(function (o) {
+            return '<div class="o-ed">' +
+              '<label class="sr" for="on-' + o.id + '">Nome da opção</label><input type="text" id="on-' + o.id + '" data-op-nome="' + o.id + '" value="' + esc(o.nome) + '" data-antes="' + esc(o.nome) + '">' +
+              '<label class="sr" for="op-' + o.id + '">Preço extra de ' + esc(o.nome) + '</label><input type="text" inputmode="decimal" id="op-' + o.id + '" data-op-preco="' + o.id + '" value="' + precoTxt(o.preco_extra) + '" data-antes="' + precoTxt(o.preco_extra) + '">' +
+              '<label class="switch"><input type="checkbox" data-op-disp="' + o.id + '"' + (o.disponivel ? ' checked' : '') + ' aria-label="' + esc(o.nome) + ' disponível"><span class="trilho"></span><span>' + (o.disponivel ? 'Disponível' : 'Esgotado') + '</span></label>' +
+              '<button class="btn danger mini" type="button" data-excluir-op="' + o.id + '">Excluir</button></div>';
+          }).join('') +
+          '<form class="mini-form" data-nova-op="' + g.id + '" novalidate>' +
+            '<input type="text" name="nome" placeholder="Nova opção" aria-label="Nome da nova opção em ' + esc(g.nome) + '">' +
+            '<input type="text" name="preco" inputmode="decimal" placeholder="+ 0,00" aria-label="Preço extra">' +
+            '<button class="btn mini" type="submit">Adicionar</button></form></div>';
+      }).join('') +
+      '<form class="mini-form grupo-novo" data-novo-grupo="' + p.id + '" novalidate>' +
+        '<input type="text" name="nome" placeholder="Novo grupo (ex.: Sabor)" aria-label="Nome do novo grupo">' +
+        '<select name="tipo" aria-label="Como o cliente escolhe"><option value="1-1">Escolher 1 · obrigatório</option><option value="0-1">Escolher 1 · opcional</option>' +
+          '<option value="0-2">Vários · até 2</option><option value="0-3">Vários · até 3</option><option value="0-5">Vários · até 5</option><option value="0-10">Vários · até 10</option></select>' +
+        '<button class="btn mini" type="submit">Criar grupo</button></form>' +
+      '</div></div>';
   }
   function formProduto(p, catId) {
     var opts = CATS.map(function (c) { return '<option value="' + c.id + '"' + ((p ? p.categoria_id : catId) === c.id ? ' selected' : '') + '>' + esc(c.nome) + '</option>'; }).join('');
@@ -579,11 +788,18 @@ window.APP = (function () {
         '<div class="field"><label for="pt-' + k + '">Destaque <span class="opt-label">(opcional)</span></label><input id="pt-' + k + '" name="tag" type="text" value="' + esc(p && p.tag ? p.tag : '') + '" placeholder="Ex.: Mais pedido"></div>' +
       '</div>' +
       '<div class="field"><label for="pd-' + k + '">Descrição <span class="opt-label">(opcional)</span></label><input id="pd-' + k + '" name="descricao" type="text" value="' + esc(p && p.descricao ? p.descricao : '') + '" placeholder="O que vem no item"></div>' +
+      '<div class="field"><span style="font-weight:700;font-size:14px">Foto <span class="opt-label">(opcional)</span></span><div class="foto-campo">' +
+        '<span data-foto-prev>' + (p && p.foto_url ? '<img src="' + esc(p.foto_url) + '" alt="Foto atual">' : '<span class="foto-vazia">Sem foto</span>') + '</span>' +
+        '<label class="btn soft mini arquivo">Escolher foto<input type="file" name="foto" accept="image/*"></label>' +
+        (p && p.foto_url ? '<label class="check"><input type="checkbox" name="semfoto"> Remover foto</label>' : '') +
+      '</div></div>' +
+      (p ? '' : '<p class="hint">Depois de adicionar, toque em "Editar" no item para incluir opções e adicionais.</p>') +
       '<div class="botoes"><button class="btn" type="submit">' + (p ? 'Salvar item' : 'Adicionar item') + '</button>' +
-        '<button class="btn ghost" type="button" data-cancelar-edicao>Cancelar</button>' +
-        (p ? '<button class="btn danger" type="button" data-excluir-prod="' + p.id + '">Excluir item</button>' : '') + '</div></form>';
+        '<button class="btn ghost" type="button" data-cancelar-edicao>Fechar</button>' +
+        (p ? '<button class="btn danger" type="button" data-excluir-prod="' + p.id + '">Excluir item</button>' : '') + '</div></form>' +
+      (p ? editorOpcoes(p) : '');
   }
-  function renderCardapio() {
+  function renderCardapio(foco) {
     if (!CATS.length) {
       $('lista-cardapio').innerHTML = '<p class="vazio">O cardápio está vazio. Comece criando uma categoria, como "Lanches" ou "Bebidas".</p>';
       return;
@@ -599,16 +815,19 @@ window.APP = (function () {
         : '<div class="cat-cab"><h3>' + esc(c.nome) + '</h3><button class="btn soft mini" type="button" data-editar-cat="' + c.id + '">Editar categoria</button></div>';
       return '<section class="cat-bloco">' + cab + itens.map(function (p) {
         if (editando === p.id) return formProduto(p, c.id);
+        var nOpc = p.grupos.length;
         return '<div class="prod' + (p.disponivel ? '' : ' off') + '">' +
-          '<span class="prod-nome">' + esc(p.nome) + (p.tag ? ' · <span class="tag">' + esc(p.tag) + '</span>' : '') + (p.descricao ? '<small>' + esc(p.descricao) + '</small>' : '') + '</span>' +
+          '<span class="prod-wrap">' + (p.foto_url ? '<img class="prod-foto" src="' + esc(p.foto_url) + '" alt="" loading="lazy">' : '') +
+          '<span class="prod-nome">' + esc(p.nome) + (p.tag ? ' · <span class="tag">' + esc(p.tag) + '</span>' : '') +
+          (p.descricao || nOpc ? '<small>' + esc([p.descricao, nOpc ? nOpc + (nOpc === 1 ? ' grupo de opções' : ' grupos de opções') : ''].filter(Boolean).join(' · ')) + '</small>' : '') + '</span></span>' +
           '<label class="sr" for="pr-' + p.id + '">Preço de ' + esc(p.nome) + '</label>' +
           '<input type="text" inputmode="decimal" id="pr-' + p.id + '" data-preco="' + p.id + '" value="' + precoTxt(p.preco) + '" data-antes="' + precoTxt(p.preco) + '">' +
           '<label class="switch"><input type="checkbox" data-disp="' + p.id + '"' + (p.disponivel ? ' checked' : '') + '><span class="trilho"></span><span>' + (p.disponivel ? 'Disponível' : 'Esgotado') + '</span></label>' +
           '<button class="btn soft mini editar" type="button" data-editar-prod="' + p.id + '">Editar</button></div>';
       }).join('') + (editando === 'novo-' + c.id ? formProduto(null, c.id) : '<button class="btn ghost mini" type="button" data-novo-prod="' + c.id + '" style="justify-self:start">+ Adicionar item em ' + esc(c.nome) + '</button>') + '</section>';
     }).join('');
-    var foco = document.querySelector('#lista-cardapio form input');
-    if (foco && editando) foco.focus();
+    var alvo = foco ? document.querySelector(foco) : null;
+    if (alvo) alvo.focus();
   }
   $('nova-cat').addEventListener('click', function () {
     $('nova-cat-form').innerHTML = '<form class="editor" id="form-nova-cat" novalidate><div class="grid2">' +
@@ -629,79 +848,160 @@ window.APP = (function () {
       carregarCardapio();
     });
   });
+  function confirmarDuasVezes(b, chave) {
+    if (confirmaExcluir === chave) { confirmaExcluir = null; return true; }
+    confirmaExcluir = chave;
+    var original = b.textContent;
+    b.textContent = 'Toque de novo';
+    setTimeout(function () { if (confirmaExcluir === chave) { confirmaExcluir = null; b.textContent = original; } }, 4000);
+    return false;
+  }
   $('lista-cardapio').addEventListener('click', async function (e) {
     var b = e.target.closest('button');
     if (!b) return;
-    if (b.dataset.editarProd) { editando = b.dataset.editarProd; renderCardapio(); }
-    else if (b.dataset.editarCat) { editando = 'cat-' + b.dataset.editarCat; renderCardapio(); }
-    else if (b.dataset.novoProd) { editando = 'novo-' + b.dataset.novoProd; renderCardapio(); }
-    else if (b.hasAttribute('data-cancelar-edicao')) { editando = null; renderCardapio(); }
-    else if (b.dataset.excluirProd || b.dataset.excluirCat) {
-      var chave = b.dataset.excluirProd || 'c' + b.dataset.excluirCat;
-      if (confirmaExcluir !== chave) {
-        confirmaExcluir = chave;
-        var original = b.textContent;
-        b.textContent = 'Toque de novo para excluir';
-        setTimeout(function () { if (confirmaExcluir === chave) { confirmaExcluir = null; b.textContent = original; } }, 4000);
-        return;
-      }
-      confirmaExcluir = null;
-      var x = b.dataset.excluirProd
-        ? await db.from('produtos').delete().eq('id', b.dataset.excluirProd)
-        : await db.from('categorias').delete().eq('id', b.dataset.excluirCat);
-      if (x.error) return A.aviso('Não foi possível excluir.');
+    var x = null;
+    if (b.dataset.editarProd) { editando = b.dataset.editarProd; renderCardapio('#lista-cardapio form input'); return; }
+    if (b.dataset.editarCat) { editando = 'cat-' + b.dataset.editarCat; renderCardapio('#lista-cardapio form input'); return; }
+    if (b.dataset.novoProd) { editando = 'novo-' + b.dataset.novoProd; renderCardapio('#lista-cardapio form input'); return; }
+    if (b.hasAttribute('data-cancelar-edicao')) { editando = null; renderCardapio(); return; }
+    if (b.dataset.excluirProd) {
+      if (!confirmarDuasVezes(b, 'p' + b.dataset.excluirProd)) return;
+      x = await db.from('produtos').delete().eq('id', b.dataset.excluirProd);
       editando = null;
-      A.aviso('Excluído.');
-      carregarCardapio();
-    }
+    } else if (b.dataset.excluirCat) {
+      if (!confirmarDuasVezes(b, 'c' + b.dataset.excluirCat)) return;
+      x = await db.from('categorias').delete().eq('id', b.dataset.excluirCat);
+      editando = null;
+    } else if (b.dataset.excluirGrupo) {
+      if (!confirmarDuasVezes(b, 'g' + b.dataset.excluirGrupo)) return;
+      x = await db.from('grupos_opcoes').delete().eq('id', b.dataset.excluirGrupo);
+    } else if (b.dataset.excluirOp) {
+      if (!confirmarDuasVezes(b, 'o' + b.dataset.excluirOp)) return;
+      x = await db.from('opcoes').delete().eq('id', b.dataset.excluirOp);
+    } else return;
+    if (x.error) return A.aviso('Não foi possível excluir.');
+    A.aviso('Excluído.');
+    carregarCardapio();
   });
   $('lista-cardapio').addEventListener('submit', async function (e) {
     e.preventDefault();
-    var f = e.target, x;
+    var f = e.target, x, nome;
+    if (f.dataset.novaOp) {
+      nome = f.elements.nome.value.trim();
+      var extra = f.elements.preco.value.trim() ? lerPreco(f.elements.preco.value) : 0;
+      if (!nome) return A.aviso('Digite o nome da opção.');
+      if (extra === null) return A.aviso('Preço extra inválido. Use algo como 2,50.');
+      var g = null;
+      PRODS.forEach(function (p) { p.grupos.forEach(function (gg) { if (gg.id === f.dataset.novaOp) g = gg; }); });
+      x = await db.from('opcoes').insert({ loja_id: loja.id, grupo_id: f.dataset.novaOp, nome: nome, preco_extra: extra,
+        ordem: (g ? g.opcoes.reduce(function (m, o) { return Math.max(m, o.ordem || 0); }, 0) : 0) + 1 });
+      if (x.error) return A.aviso('Não foi possível adicionar a opção.');
+      return carregarCardapio('[data-nova-op="' + f.dataset.novaOp + '"] input[name="nome"]');
+    }
+    if (f.dataset.novoGrupo) {
+      nome = f.elements.nome.value.trim();
+      if (!nome) return A.aviso('Digite o nome do grupo, por exemplo "Sabor".');
+      var lim = f.elements.tipo.value.split('-').map(Number);
+      var prod = PRODS.filter(function (p) { return p.id === f.dataset.novoGrupo; })[0];
+      x = await db.from('grupos_opcoes').insert({ loja_id: loja.id, produto_id: f.dataset.novoGrupo, nome: nome, minimo: lim[0], maximo: lim[1],
+        ordem: (prod ? prod.grupos.reduce(function (m, gg) { return Math.max(m, gg.ordem || 0); }, 0) : 0) + 1 }).select('id').single();
+      if (x.error) return A.aviso('Não foi possível criar o grupo.');
+      A.aviso('Grupo criado. Agora adicione as opções dele.');
+      return carregarCardapio('[data-nova-op="' + x.data.id + '"] input[name="nome"]');
+    }
     if (f.dataset.formCat) {
       var nomeCat = f.elements.nome.value.trim();
       if (!nomeCat) return A.aviso('Digite o nome da categoria.');
       x = await db.from('categorias').update({ nome: nomeCat, nota: f.elements.nota.value.trim() || null }).eq('id', f.dataset.formCat);
-    } else {
-      var nome = f.elements.nome.value.trim(), preco = lerPreco(f.elements.preco.value), cat = f.elements.categoria.value;
+      if (x.error) return A.aviso('Não foi possível salvar. Tente de novo.');
+      editando = null;
+      A.aviso('Categoria salva.');
+      return carregarCardapio();
+    }
+    if (f.hasAttribute('data-form-prod')) {
+      nome = f.elements.nome.value.trim();
+      var preco = lerPreco(f.elements.preco.value), cat = f.elements.categoria.value;
       if (!nome) return A.aviso('Digite o nome do item.');
       if (preco === null || f.elements.preco.value.trim() === '') return A.aviso('Preço inválido. Use algo como 18,50.');
       var dados = { nome: nome, preco: preco, categoria_id: cat, tag: f.elements.tag.value.trim() || null, descricao: f.elements.descricao.value.trim() || null };
-      if (f.dataset.formProd) x = await db.from('produtos').update(dados).eq('id', f.dataset.formProd);
+      var botao = f.querySelector('button[type="submit"]');
+      botao.disabled = true;
+      var id = f.dataset.formProd;
+      if (id) x = await db.from('produtos').update(dados).eq('id', id);
       else {
         dados.loja_id = loja.id;
         dados.ordem = PRODS.filter(function (p) { return p.categoria_id === cat; }).reduce(function (m, p) { return Math.max(m, p.ordem || 0); }, 0) + 1;
-        x = await db.from('produtos').insert(dados);
+        x = await db.from('produtos').insert(dados).select('id').single();
+        if (!x.error) id = x.data.id;
       }
+      if (x.error) { botao.disabled = false; return A.aviso('Não foi possível salvar. Tente de novo.'); }
+      var arquivo = f.elements.foto && f.elements.foto.files[0];
+      if (arquivo) {
+        A.aviso('Enviando foto…');
+        try {
+          var url = await A.enviarFoto(loja.id, arquivo, 'item-' + id, 900);
+          await db.from('produtos').update({ foto_url: url }).eq('id', id);
+        } catch (er) { A.aviso('Item salvo, mas a foto não foi enviada. Tente outra imagem.'); }
+      } else if (f.elements.semfoto && f.elements.semfoto.checked) {
+        await db.from('produtos').update({ foto_url: null }).eq('id', id);
+      }
+      var eraNovo = !f.dataset.formProd;
+      editando = eraNovo ? id : null;
+      A.aviso(eraNovo ? 'Item adicionado. Se quiser, inclua as opções abaixo.' : 'Salvo. O cardápio já mostra a mudança.');
+      return carregarCardapio(eraNovo ? '[data-novo-grupo="' + id + '"] input[name="nome"]' : null);
     }
-    if (x.error) return A.aviso('Não foi possível salvar. Tente de novo.');
-    editando = null;
-    A.aviso('Salvo. O cardápio já mostra a mudança.');
-    carregarCardapio();
   });
   $('lista-cardapio').addEventListener('change', async function (e) {
-    var t = e.target;
+    var t = e.target, x;
+    if (t.name === 'foto' && t.files && t.files[0]) {
+      var prev = t.closest('form').querySelector('[data-foto-prev]');
+      prev.innerHTML = '<img src="' + URL.createObjectURL(t.files[0]) + '" alt="Foto nova">';
+      return;
+    }
     if (t.dataset.disp) {
       var on = t.checked, linha = t.closest('.prod'), rot = t.parentNode.lastChild;
       linha.classList.toggle('off', !on);
       rot.textContent = on ? 'Disponível' : 'Esgotado';
-      var x = await db.from('produtos').update({ disponivel: on }).eq('id', t.dataset.disp);
+      x = await db.from('produtos').update({ disponivel: on }).eq('id', t.dataset.disp);
       if (x.error) { t.checked = !on; linha.classList.toggle('off', on); rot.textContent = !on ? 'Disponível' : 'Esgotado'; return A.aviso('Não foi possível salvar.'); }
       PRODS.forEach(function (p) { if (p.id === t.dataset.disp) p.disponivel = on; });
-      A.aviso(on ? 'Item disponível de novo.' : 'Item marcado como esgotado.');
+      return A.aviso(on ? 'Item disponível de novo.' : 'Item marcado como esgotado.');
     }
     if (t.dataset.preco) {
       var v = lerPreco(t.value);
       if (v === null) { t.value = t.dataset.antes; return A.aviso('Preço inválido. Use algo como 18,50.'); }
-      var y = await db.from('produtos').update({ preco: v }).eq('id', t.dataset.preco);
-      if (y.error) { t.value = t.dataset.antes; return A.aviso('Não foi possível salvar o preço.'); }
+      x = await db.from('produtos').update({ preco: v }).eq('id', t.dataset.preco);
+      if (x.error) { t.value = t.dataset.antes; return A.aviso('Não foi possível salvar o preço.'); }
       t.value = precoTxt(v); t.dataset.antes = precoTxt(v);
       PRODS.forEach(function (p) { if (p.id === t.dataset.preco) p.preco = v; });
-      A.aviso('Preço salvo: ' + fmt(v));
+      return A.aviso('Preço salvo: ' + fmt(v));
+    }
+    if (t.dataset.opNome) {
+      var n = t.value.trim();
+      if (!n) { t.value = t.dataset.antes; return A.aviso('A opção precisa de um nome.'); }
+      x = await db.from('opcoes').update({ nome: n }).eq('id', t.dataset.opNome);
+      if (x.error) { t.value = t.dataset.antes; return A.aviso('Não foi possível salvar.'); }
+      t.dataset.antes = n;
+      return A.aviso('Opção salva.');
+    }
+    if (t.dataset.opPreco) {
+      var pe = lerPreco(t.value || '0');
+      if (pe === null) { t.value = t.dataset.antes; return A.aviso('Preço inválido. Use algo como 2,50.'); }
+      x = await db.from('opcoes').update({ preco_extra: pe }).eq('id', t.dataset.opPreco);
+      if (x.error) { t.value = t.dataset.antes; return A.aviso('Não foi possível salvar.'); }
+      t.value = precoTxt(pe); t.dataset.antes = precoTxt(pe);
+      return A.aviso('Preço da opção salvo.');
+    }
+    if (t.dataset.opDisp) {
+      var txt = t.parentNode.lastChild;
+      txt.textContent = t.checked ? 'Disponível' : 'Esgotado';
+      x = await db.from('opcoes').update({ disponivel: t.checked }).eq('id', t.dataset.opDisp);
+      if (x.error) { t.checked = !t.checked; txt.textContent = t.checked ? 'Disponível' : 'Esgotado'; return A.aviso('Não foi possível salvar.'); }
+      return A.aviso(t.checked ? 'Opção disponível.' : 'Opção marcada como esgotada.');
     }
   });
 
-  // ---------- Dados da loja, link e QR Code ----------
+  // ---------- Loja: link, QR Code, logo, horários, avisos e dados ----------
   function preencherLoja() {
     var link = new URL('index.html?loja=' + encodeURIComponent(loja.slug), location.href).href;
     $('link-loja').textContent = link;
@@ -716,8 +1016,118 @@ window.APP = (function () {
     $('c-pix').value = loja.pix_chave || '';
     $('c-pixnome').value = loja.pix_nome || '';
     $('c-pixcidade').value = loja.pix_cidade || '';
+    renderLogo();
+    renderHoras();
+    statusPush();
   }
   $('copiar-link').addEventListener('click', function () { A.copiar($('link-loja').textContent, $('link-reserva'), 'Link copiado.'); });
+
+  function renderLogo() {
+    $('logo-prev').innerHTML = loja.logo_url ? '<img src="' + esc(loja.logo_url) + '" alt="Logo atual">' : '<span class="foto-vazia">Sem logo</span>';
+    $('logo-remover').hidden = !loja.logo_url;
+  }
+  $('logo-arquivo').addEventListener('change', async function () {
+    var arq = this.files[0], campo = this;
+    if (!arq) return;
+    A.aviso('Enviando logo…');
+    try {
+      var url = await A.enviarFoto(loja.id, arq, 'logo', 400);
+      var x = await db.from('lojas').update({ logo_url: url }).eq('id', loja.id);
+      if (x.error) throw x.error;
+      loja.logo_url = url;
+      renderLogo();
+      renderAberta();
+      A.aviso('Logo salvo. Já aparece no cardápio.');
+    } catch (e) { A.aviso('Não foi possível enviar o logo. Tente outra imagem.'); }
+    campo.value = '';
+  });
+  $('logo-remover').addEventListener('click', async function () {
+    var x = await db.from('lojas').update({ logo_url: null }).eq('id', loja.id);
+    if (x.error) return A.aviso('Não foi possível remover.');
+    loja.logo_url = null;
+    renderLogo();
+    renderAberta();
+    A.aviso('Logo removido.');
+  });
+
+  function renderHoras() {
+    $('h-auto').checked = !!loja.abrir_auto;
+    var h = loja.horarios || {};
+    $('horas').innerHTML = A.DIAS.map(function (d, i) {
+      var x = h[String(i)], on = !!(x && x.abre && x.fecha);
+      var nome = d.charAt(0).toUpperCase() + d.slice(1);
+      return '<div class="hora-linha"><label class="check"><input type="checkbox" data-dia="' + i + '"' + (on ? ' checked' : '') + '> ' + nome + '</label>' +
+        '<input type="time" aria-label="' + nome + ': abre às" data-abre="' + i + '" value="' + (on ? esc(x.abre) : '18:00') + '"' + (on ? '' : ' disabled') + '>' +
+        '<span class="ate">às</span>' +
+        '<input type="time" aria-label="' + nome + ': fecha às" data-fecha="' + i + '" value="' + (on ? esc(x.fecha) : '23:30') + '"' + (on ? '' : ' disabled') + '></div>';
+    }).join('');
+  }
+  $('horas').addEventListener('change', function (e) {
+    var d = e.target.dataset.dia;
+    if (d === undefined) return;
+    document.querySelector('[data-abre="' + d + '"]').disabled = !e.target.checked;
+    document.querySelector('[data-fecha="' + d + '"]').disabled = !e.target.checked;
+  });
+  $('form-horas').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var h = {}, dias = 0, ruim = null;
+    for (var i = 0; i < 7; i++) {
+      if (!document.querySelector('[data-dia="' + i + '"]').checked) continue;
+      var a = document.querySelector('[data-abre="' + i + '"]').value, f = document.querySelector('[data-fecha="' + i + '"]').value;
+      if (!a || !f || a === f) { ruim = ruim || A.DIAS[i]; continue; }
+      h[String(i)] = { abre: a, fecha: f };
+      dias++;
+    }
+    var auto = $('h-auto').checked;
+    if (ruim) return A.aviso('Confira o horário de ' + ruim + ': abertura e fechamento precisam ser diferentes.');
+    if (auto && !dias) return A.aviso('Marque pelo menos um dia para usar o horário automático.');
+    var b = $('salvar-horas');
+    b.disabled = true;
+    var x = await db.from('lojas').update({ abrir_auto: auto, horarios: h }).eq('id', loja.id);
+    b.disabled = false;
+    if (x.error) return A.aviso('Não foi possível salvar os horários.');
+    loja.abrir_auto = auto;
+    loja.horarios = h;
+    renderAberta();
+    A.aviso(auto ? 'Horários salvos. A loja agora abre e fecha sozinha.' : 'Horários salvos. A loja continua no modo manual.');
+  });
+
+  async function statusPush() {
+    var el = $('push-status');
+    if (!A.avisosSuportados()) {
+      el.textContent = 'Este navegador não aceita notificações. No iPhone, adicione o painel à Tela de Início e abra por esse ícone.';
+      $('ativar-push').hidden = true;
+      $('desativar-push').hidden = true;
+      $('aviso-push').hidden = true;
+      return;
+    }
+    var sub = null;
+    try { sub = await A.inscricaoAtual(); } catch (e) {}
+    var ativo = !!sub && Notification.permission === 'granted';
+    el.textContent = ativo
+      ? 'Ativos neste aparelho. Cada pedido novo chega como notificação, mesmo com o painel fechado.'
+      : Notification.permission === 'denied'
+        ? 'As notificações estão bloqueadas neste navegador. Libere nas configurações do site e tente de novo.'
+        : 'Desativados neste aparelho.';
+    $('ativar-push').hidden = ativo;
+    $('desativar-push').hidden = !ativo;
+    $('aviso-push').hidden = ativo;
+  }
+  async function ativarPush(b) {
+    b.disabled = true;
+    try { await A.ativarAvisos(loja.id); A.aviso('Avisos ativados neste aparelho.'); }
+    catch (e) { A.aviso(e && e.message ? e.message : 'Não foi possível ativar os avisos.'); }
+    b.disabled = false;
+    statusPush();
+  }
+  $('ativar-push').addEventListener('click', function () { ativarPush(this); });
+  $('ativar-push-topo').addEventListener('click', function () { ativarPush(this); });
+  $('desativar-push').addEventListener('click', async function () {
+    try { await A.desativarAvisos(); } catch (e) {}
+    A.aviso('Avisos desativados neste aparelho.');
+    statusPush();
+  });
+
   $('form-loja').addEventListener('submit', async function (e) {
     e.preventDefault();
     var taxa = lerPreco($('c-taxa').value || '0');
@@ -755,6 +1165,7 @@ window.APP = (function () {
 
   await carregarPedidos(true);
   assinar();
+  statusPush();
 })();
 </script>
 </body>

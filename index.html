@@ -62,6 +62,36 @@
 .stepper { display: inline-flex; align-items: center; gap: 2px; background: var(--dark); color: var(--on-dark); border-radius: 999px; padding: 3px; }
 .stepper button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; display: grid; place-items: center; padding: 0; }
 .stepper output { min-width: 22px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+.item.com-foto { grid-template-columns: 76px minmax(0, 1fr) auto; }
+.item-foto { width: 76px; height: 76px; border-radius: 12px; object-fit: cover; background: var(--surface); display: block; }
+.item-opc { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+.add { position: relative; }
+.qtd-badge { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding-inline: 5px; box-sizing: border-box; border-radius: 999px; background: var(--pequi); color: var(--dark); font-size: 12px; font-weight: 800; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.mark { overflow: hidden; }
+.mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.credit a, .privacy a { color: inherit; font-weight: 700; }
+
+/* Janela de personalizar item */
+.perso-foto { width: 100%; max-width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 16px; background: var(--surface); display: block; }
+.perso-cab h2 { font-family: var(--font-display); font-weight: 400; font-size: 28px; line-height: 1.1; margin: 0; text-wrap: balance; }
+.perso-cab p { margin: 6px 0 0; color: var(--muted); }
+.perso-cab .preco { color: var(--ink); font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }
+.grupo { border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin: 0; display: grid; gap: 8px; background: var(--surface); min-width: 0; }
+.grupo legend { float: left; width: 100%; padding: 0; margin: 0 0 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 16px; }
+.grupo legend + * { clear: both; }
+.regra { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+.regra.obrig { background: var(--dark); color: var(--on-dark); border-color: var(--dark); }
+.grupo.erro { border-color: var(--danger); }
+.grupo .err { margin: 0; }
+.op-linha { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; }
+.op-linha input { width: 20px; height: 20px; accent-color: var(--dark); margin: 0; flex: none; }
+.op-linha span { flex: 1; min-width: 0; }
+.op-linha small { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.op-linha.off { opacity: .5; cursor: not-allowed; }
+.perso-pe { display: flex; gap: 10px; align-items: center; }
+.perso-pe .stepper { flex: none; }
+.perso-pe .btn { flex: 1; }
+.l-ops { font-size: 13px; color: var(--muted); }
 
 .foot { padding-block: 12px 190px; }
 .credit { margin: 0; font-size: 13px; color: var(--muted); text-align: center; }
@@ -158,7 +188,7 @@ body.has-cart .fab { bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
 <main class="wrap" id="menu"><div class="state">Carregando cardápio…</div></main>
 
 <footer class="wrap foot" id="rodape" hidden>
-  <p class="credit">Cardápio digital com pedido online, sem comissão por pedido.</p>
+  <p class="credit">Cardápio digital com pedido online · <a href="termos.html">Termos e privacidade</a></p>
 </footer>
 
 <div class="cartbar" id="cartbar" hidden>
@@ -246,7 +276,31 @@ body.has-cart .fab { bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
     <div class="foot-inner">
       <p class="envio-erro" id="envio-erro" role="alert" hidden></p>
       <button class="btn big" id="confirmar" type="button">Confirmar pedido · <span id="send-total">R$ 0,00</span></button>
-      <p class="privacy">Seus dados são usados só para preparar e entregar este pedido.</p>
+      <p class="privacy">Seus dados são usados só para preparar e entregar este pedido. <a href="termos.html">Privacidade</a></p>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="perso" hidden role="dialog" aria-modal="true" aria-labelledby="perso-h">
+  <div class="sheet-head">
+    <div class="wrap">
+      <button class="icon-btn" id="fechar-perso" type="button" aria-label="Voltar ao cardápio">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+      <h2 id="perso-topo" style="font-size:18px;font-family:var(--font-body);font-weight:800;margin:0">Montar item</h2>
+    </div>
+  </div>
+  <div class="wrap sheet-body" id="perso-corpo"></div>
+  <div class="sheet-foot">
+    <div class="foot-inner">
+      <div class="perso-pe">
+        <div class="stepper" role="group" aria-label="Quantidade">
+          <button type="button" id="perso-menos" aria-label="Diminuir quantidade"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+          <output id="perso-qtd">1</output>
+          <button type="button" id="perso-mais" aria-label="Aumentar quantidade"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+        </div>
+        <button class="btn big" type="button" id="perso-add">Adicionar · <span id="perso-total">R$ 0,00</span></button>
+      </div>
     </div>
   </div>
 </div>
@@ -401,6 +455,102 @@ window.APP = (function () {
     location.href = para || 'entrar.html';
   }
 
+  // ---------- Horário da loja (fuso de Tocantins) ----------
+  var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  var DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  function agoraLocal() {
+    var p = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Araguaina', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+    var dia = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday);
+    return { dia: dia, min: Number(p.hour) * 60 + Number(p.minute) };
+  }
+  function paraMin(h) { var m = /^(\d{1,2}):(\d{2})/.exec(h || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+  function faixa(horarios, dia) {
+    var h = horarios && horarios[String(dia)];
+    if (!h || typeof h !== 'object') return null;
+    var a = paraMin(h.abre), f = paraMin(h.fecha);
+    return a === null || f === null ? null : { abre: a, fecha: f, txtAbre: h.abre.slice(0, 5), txtFecha: h.fecha.slice(0, 5) };
+  }
+  function dentroDoHorario(horarios) {
+    var t = agoraLocal(), hoje = faixa(horarios, t.dia), ontem = faixa(horarios, (t.dia + 6) % 7);
+    if (hoje && ((hoje.fecha > hoje.abre && t.min >= hoje.abre && t.min < hoje.fecha) || (hoje.fecha <= hoje.abre && t.min >= hoje.abre))) return hoje;
+    if (ontem && ontem.fecha <= ontem.abre && t.min < ontem.fecha) return ontem;
+    return null;
+  }
+  function estadoLoja(l) {
+    if (!l.ativa) return { aberta: false, texto: 'Indisponível no momento' };
+    if (!l.abrir_auto) return { aberta: !!l.aberta, texto: l.aberta ? 'Aberto agora' : 'Fechado agora' };
+    if (!l.aberta) return { aberta: false, texto: 'Pausado agora' };
+    var f = dentroDoHorario(l.horarios || {});
+    if (f) return { aberta: true, texto: 'Aberto agora · fecha às ' + f.txtFecha };
+    var t = agoraLocal();
+    for (var i = 0; i < 7; i++) {
+      var d = (t.dia + i) % 7, fx = faixa(l.horarios || {}, d);
+      if (!fx || (i === 0 && fx.abre <= t.min)) continue;
+      return { aberta: false, texto: 'Fechado agora · abre ' + (i === 0 ? 'hoje' : i === 1 ? 'amanhã' : DIAS[d]) + ' às ' + fx.txtAbre };
+    }
+    return { aberta: false, texto: 'Fechado agora' };
+  }
+
+  // ---------- Fotos: reduz no celular antes de enviar ----------
+  function reduzirImagem(arquivo, lado) {
+    return new Promise(function (ok, erro) {
+      var img = new Image(), url = URL.createObjectURL(arquivo);
+      img.onload = function () {
+        var fator = Math.min(1, (lado || 900) / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * fator); c.height = Math.round(img.height * fator);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { b ? ok(b) : erro(new Error('Não foi possível ler a imagem.')); }, 'image/jpeg', 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); erro(new Error('Arquivo de imagem inválido.')); };
+      img.src = url;
+    });
+  }
+  async function enviarFoto(lojaId, arquivo, prefixo, lado) {
+    var blob = await reduzirImagem(arquivo, lado);
+    var caminho = lojaId + '/' + prefixo + '-' + Date.now() + '.jpg';
+    var r = await db.storage.from('fotos').upload(caminho, blob, { contentType: 'image/jpeg', upsert: true, cacheControl: '31536000' });
+    if (r.error) throw r.error;
+    return db.storage.from('fotos').getPublicUrl(caminho).data.publicUrl;
+  }
+
+  // ---------- Avisos de pedido novo (notificação no celular) ----------
+  var VAPID_PUBLICO = 'BDamUn6Jzw564LwcyvPZUvCZyJne3ZhsbV6Bt9im4m-EgNjJuI8YhbBiTL4cc4l0RnKst-TQgmx_hXGHmpL5v6Q';
+  function b64uParaBytes(s) {
+    var b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+    return Uint8Array.from(b, function (c) { return c.charCodeAt(0); });
+  }
+  function avisosSuportados() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  async function inscricaoAtual() {
+    if (!avisosSuportados()) return null;
+    var reg = await navigator.serviceWorker.getRegistration();
+    return reg ? reg.pushManager.getSubscription() : null;
+  }
+  async function ativarAvisos(lojaId) {
+    if (!avisosSuportados()) throw new Error('Este navegador não aceita notificações. No iPhone, primeiro adicione o painel à Tela de Início.');
+    var perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('As notificações foram bloqueadas. Libere nas configurações do navegador para este site.');
+    var reg;
+    try { reg = await navigator.serviceWorker.register('sw.js'); }
+    catch (e) { throw new Error('Falta o arquivo sw.js no site. Envie ele junto com as outras páginas.'); }
+    await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription() ||
+      await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uParaBytes(VAPID_PUBLICO) });
+    var j = sub.toJSON();
+    var r = await db.rpc('inscrever_push', { p_loja: lojaId, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_url: location.href.split('#')[0] });
+    if (r.error) throw r.error;
+    return true;
+  }
+  async function desativarAvisos() {
+    var sub = await inscricaoAtual();
+    if (!sub) return;
+    await db.rpc('cancelar_push', { p_endpoint: sub.endpoint });
+    await sub.unsubscribe();
+  }
+
   var STATUS = {
     recebido: 'Recebido', preparo: 'Em preparo', saiu: 'Saiu para entrega',
     pronto: 'Pronto para retirar', concluido: 'Concluído', cancelado: 'Cancelado'
@@ -411,7 +561,9 @@ window.APP = (function () {
     db: db, $: $, fmt: fmt, esc: esc, semAcento: semAcento, slugAtual: slugAtual, iniciais: iniciais,
     numBonito: numBonito, linkWhats: linkWhats, pixPayload: pixPayload, qrSvg: qrSvg,
     aviso: aviso, copiar: copiar, guardar: guardar, ler: ler, STATUS: STATUS, PAGAMENTO: PAGAMENTO,
-    DESTINO: DESTINO, voltaSegura: voltaSegura, perfil: perfil, exigir: exigir, sair: sair
+    DESTINO: DESTINO, voltaSegura: voltaSegura, perfil: perfil, exigir: exigir, sair: sair,
+    DIAS: DIAS, DIAS_CURTOS: DIAS_CURTOS, estadoLoja: estadoLoja, enviarFoto: enviarFoto,
+    avisosSuportados: avisosSuportados, inscricaoAtual: inscricaoAtual, ativarAvisos: ativarAvisos, desativarAvisos: desativarAvisos
   };
 })();
 
@@ -420,7 +572,7 @@ window.APP = (function () {
 (function () {
   var A = window.APP, $ = A.$, fmt = A.fmt, esc = A.esc;
   var SLUG = A.slugAtual();
-  var loja = null, MENU = [], ITENS = {}, cart = {}, enviando = false;
+  var loja = null, estado = { aberta: false, texto: '' }, MENU = [], ITENS = {}, OPC = {}, cart = {}, enviando = false;
   var reduz = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var PLUS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
   var MINUS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
@@ -434,9 +586,9 @@ window.APP = (function () {
   }
 
   async function carregar() {
-    $('menu').innerHTML = '<div class="state">Carregando cardápio…</div>';
+    if (!MENU.length) $('menu').innerHTML = '<div class="state">Carregando cardápio…</div>';
     var r1 = await A.db.from('lojas')
-      .select('id, slug, nome, descricao, endereco, horario, whatsapp, taxa_entrega, tempo_entrega, aberta, ativa')
+      .select('id, slug, nome, descricao, endereco, horario, whatsapp, taxa_entrega, tempo_entrega, aberta, ativa, logo_url, abrir_auto, horarios')
       .eq('slug', SLUG).maybeSingle();
     if (r1.error) return falha('Não foi possível carregar o cardápio. Confira sua internet e tente de novo.', true);
     if (!r1.data) return falha('Não encontramos esta lanchonete. Confira o link.', false);
@@ -445,49 +597,42 @@ window.APP = (function () {
     if (!loja.ativa) { document.title = loja.nome; return falha('Esta loja está indisponível no momento.', false); }
     var res = await Promise.all([
       A.db.from('categorias').select('id, nome, nota, ordem').eq('loja_id', loja.id).order('ordem'),
-      A.db.from('produtos').select('id, categoria_id, nome, descricao, preco, tag, disponivel, ordem').eq('loja_id', loja.id).order('ordem')
+      A.db.from('produtos').select('id, categoria_id, nome, descricao, preco, tag, disponivel, ordem, foto_url, grupos_opcoes(id, nome, minimo, maximo, ordem, opcoes(id, nome, preco_extra, disponivel, ordem))').eq('loja_id', loja.id).order('ordem')
     ]);
     if (res[0].error || res[1].error) return falha('Não foi possível carregar o cardápio. Confira sua internet e tente de novo.', true);
+    ITENS = {}; OPC = {};
+    res[1].data.forEach(function (p) {
+      p.preco = Number(p.preco);
+      p.grupos = (p.grupos_opcoes || []).sort(function (a, b) { return a.ordem - b.ordem; }).map(function (g) {
+        g.opcoes = (g.opcoes || []).sort(function (a, b) { return a.ordem - b.ordem; });
+        g.opcoes.forEach(function (o) { o.preco_extra = Number(o.preco_extra); OPC[o.id] = { o: o, g: g, pid: p.id }; });
+        return g;
+      }).filter(function (g) { return g.opcoes.length; });
+      ITENS[p.id] = p;
+    });
     MENU = res[0].data.map(function (c) {
-      return {
-        id: c.id, nome: c.nome, nota: c.nota,
-        itens: res[1].data.filter(function (p) { return p.categoria_id === c.id; })
-          .map(function (p) { p.preco = Number(p.preco); return p; })
-      };
+      return { id: c.id, nome: c.nome, nota: c.nota, itens: res[1].data.filter(function (p) { return p.categoria_id === c.id; }) };
     }).filter(function (c) { return c.itens.length; });
-    ITENS = {};
-    MENU.forEach(function (c) { c.itens.forEach(function (i) { ITENS[i.id] = i; }); });
-    Object.keys(cart).forEach(function (id) { if (!ITENS[id] || !ITENS[id].disponivel) delete cart[id]; });
+    // Tira do carrinho o que saiu do cardápio, esgotou ou mudou de opção.
+    Object.keys(cart).forEach(function (k) {
+      var l = cart[k], p = ITENS[l.pid];
+      if (!p || !p.disponivel || l.ops.some(function (id) { return !OPC[id] || !OPC[id].o.disponivel; })) delete cart[k];
+    });
     montarBot();
     renderLoja();
     renderMenu();
     renderBar();
+    if (!sheet.hidden) renderSheet();
     conta();
   }
 
-  // ---------- Conta opcional do freguês ----------
-  var eu = null;
-  async function conta() {
-    var aqui = 'index.html?loja=' + encodeURIComponent(loja.slug);
-    var link = 'entrar.html?volta=' + encodeURIComponent(aqui);
-    $('conta-link').href = link;
-    $('dica-link').href = link;
-    eu = await A.perfil();
-    if (!eu) return;
-    $('conta-link').textContent = eu.papel === 'admin' ? 'Administração' : eu.papel === 'lojista' ? 'Meu painel' : (eu.nome ? eu.nome.split(' ')[0] : 'Minha conta');
-    $('conta-link').href = A.DESTINO[eu.papel] || 'minha-conta.html';
-    $('conta-dica').hidden = true;
-    if (!$('f-nome').value && eu.nome) $('f-nome').value = eu.nome;
-    if (!$('f-tel').value && eu.telefone) $('f-tel').value = eu.telefone;
-    if (!$('f-end').value && eu.endereco) $('f-end').value = eu.endereco;
-    if (!$('f-ref').value && eu.referencia) $('f-ref').value = eu.referencia;
-  }
-
   function renderLoja() {
+    estado = A.estadoLoja(loja);
     document.title = loja.nome + ' · Cardápio';
     $('demo-strip').hidden = loja.slug !== 'pequi-lanches';
-    $('mark').textContent = A.iniciais(loja.nome);
-    $('chat-mark').textContent = A.iniciais(loja.nome);
+    var marca = loja.logo_url ? '<img src="' + esc(loja.logo_url) + '" alt="">' : esc(A.iniciais(loja.nome));
+    $('mark').innerHTML = marca;
+    $('chat-mark').innerHTML = marca;
     $('chat-sub').textContent = loja.nome + ' · responde na hora';
     var partes = loja.nome.trim().split(/\s+/);
     $('loja-nome').innerHTML = partes.length > 1
@@ -496,8 +641,8 @@ window.APP = (function () {
     $('tagline').textContent = loja.descricao || '';
     $('tagline').hidden = !loja.descricao;
     var st = $('status');
-    st.className = 'pill ' + (loja.aberta ? 'ok' : 'off');
-    st.textContent = loja.aberta ? 'Aberto agora' : 'Fechado agora';
+    st.className = 'pill ' + (estado.aberta ? 'ok' : 'off');
+    st.textContent = estado.texto;
     $('info').textContent = [loja.horario, loja.endereco].filter(Boolean).join(' · ');
     $('facts').innerHTML =
       '<li>Entrega<strong>' + fmt(loja.taxa_entrega) + '</strong></li>' +
@@ -505,23 +650,60 @@ window.APP = (function () {
       '<li>Retirada no balcão<strong>Sem taxa</strong></li>' +
       '<li>Pagamento<strong>Pix, dinheiro, cartão</strong></li>';
     $('opt-entrega').textContent = 'Entrega · ' + fmt(loja.taxa_entrega);
-    $('fechado-aviso').hidden = loja.aberta;
+    $('fechado-aviso').hidden = estado.aberta;
     $('store').hidden = false;
     $('cats').hidden = false;
     $('rodape').hidden = false;
-    $('fab').hidden = false;
+    $('fab').hidden = !chat.hidden;
     var tk = A.ler('ultimo-pedido:' + loja.slug);
     if (tk) { $('ultimo-link').href = 'pedido.html?t=' + encodeURIComponent(tk); $('ultimo').hidden = false; }
+    if (!sheet.hidden) atualizarForm();
+  }
+  setInterval(function () { if (loja) renderLoja(); }, 60000);
+
+  // ---------- Itens, opções e carrinho ----------
+  function temOpcoes(pid) { return ITENS[pid].grupos.length > 0; }
+  function exigeEscolha(pid) { return ITENS[pid].grupos.some(function (g) { return g.minimo > 0; }); }
+  function temExtra(pid) { return ITENS[pid].grupos.some(function (g) { return g.opcoes.some(function (o) { return o.preco_extra > 0; }); }); }
+  function chave(pid, ops, obs) { return pid + '|' + ops.slice().sort().join(',') + '|' + (obs || ''); }
+  function precoLinha(l) {
+    return ITENS[l.pid].preco + l.ops.reduce(function (s, id) { return s + (OPC[id] ? OPC[id].o.preco_extra : 0); }, 0);
+  }
+  function qtdProduto(pid) {
+    return Object.keys(cart).reduce(function (n, k) { return n + (cart[k].pid === pid ? cart[k].qtd : 0); }, 0);
+  }
+  function somarLinha(pid, ops, obs, n) {
+    var p = ITENS[pid];
+    if (!p || !p.disponivel) return false;
+    var k = chave(pid, ops, obs);
+    var l = cart[k] || (cart[k] = { k: k, pid: pid, ops: ops.slice().sort(), obs: obs || '', qtd: 0 });
+    l.qtd = Math.min(l.qtd + n, 50);
+    if (l.qtd <= 0) delete cart[k];
+    return true;
+  }
+  function descOpcoes(l) {
+    var t = l.ops.map(function (id) { return OPC[id] ? OPC[id].o.nome : ''; }).filter(Boolean).join(', ');
+    return [t, l.obs ? 'Obs.: ' + l.obs : ''].filter(Boolean).join(' · ');
   }
 
-  function ctrlHTML(id) {
-    var i = ITENS[id], q = cart[id] || 0, n = esc(i.nome);
+  function ctrlHTML(pid) {
+    var i = ITENS[pid], n = esc(i.nome);
     if (!i.disponivel) return '';
-    if (!q) return '<button type="button" class="add" data-act="add" data-id="' + id + '" aria-label="Adicionar ' + n + '">' + PLUS + '</button>';
+    if (temOpcoes(pid)) {
+      var q = qtdProduto(pid);
+      return '<button type="button" class="add" data-act="perso" data-id="' + pid + '" aria-label="Escolher opções de ' + n + (q ? ', ' + q + ' no pedido' : '') + '">' + PLUS +
+        (q ? '<span class="qtd-badge" aria-hidden="true">' + q + '</span>' : '') + '</button>';
+    }
+    var k = chave(pid, [], ''), qs = cart[k] ? cart[k].qtd : 0;
+    if (!qs) return '<button type="button" class="add" data-act="add" data-id="' + pid + '" aria-label="Adicionar ' + n + '">' + PLUS + '</button>';
+    return stepperHTML(k, qs, i.nome);
+  }
+  function stepperHTML(k, q, nome) {
+    var n = esc(nome);
     return '<div class="stepper" role="group" aria-label="Quantidade de ' + n + '">' +
-      '<button type="button" data-act="dec" data-id="' + id + '" aria-label="Tirar um ' + n + '">' + MINUS + '</button>' +
+      '<button type="button" data-act="dec" data-k="' + esc(k) + '" aria-label="Tirar um ' + n + '">' + MINUS + '</button>' +
       '<output>' + q + '</output>' +
-      '<button type="button" data-act="inc" data-id="' + id + '" aria-label="Mais um ' + n + '">' + PLUS + '</button></div>';
+      '<button type="button" data-act="inc" data-k="' + esc(k) + '" aria-label="Mais um ' + n + '">' + PLUS + '</button></div>';
   }
 
   function renderMenu() {
@@ -533,15 +715,100 @@ window.APP = (function () {
         '<h2 id="h-' + c.id + '">' + esc(c.nome) + '</h2>' + (c.nota ? '<p class="cat-note">' + esc(c.nota) + '</p>' : '') +
         '<ul class="items">' + c.itens.map(function (i) {
           var tag = !i.disponivel ? '<span class="tag off">Esgotado</span>' : i.tag ? '<span class="tag">' + esc(i.tag) + '</span>' : '';
-          return '<li class="item' + (i.disponivel ? '' : ' off') + '"><div class="item-info"><div class="item-name">' + esc(i.nome) + tag + '</div>' +
+          var opc = i.disponivel && i.grupos.length ? '<div class="item-opc">' + (exigeEscolha(i.id) ? 'Escolha as opções' : 'Tem adicionais') + '</div>' : '';
+          return '<li class="item' + (i.disponivel ? '' : ' off') + (i.foto_url ? ' com-foto' : '') + '">' +
+            (i.foto_url ? '<img class="item-foto" src="' + esc(i.foto_url) + '" alt="" loading="lazy">' : '') +
+            '<div class="item-info"><div class="item-name">' + esc(i.nome) + tag + '</div>' +
             (i.descricao ? '<p class="item-desc">' + esc(i.descricao) + '</p>' : '') +
-            '<div class="item-price">' + fmt(i.preco) + '</div></div>' +
+            '<div class="item-price">' + (temExtra(i.id) ? 'A partir de ' : '') + fmt(i.preco) + '</div>' + opc + '</div>' +
             '<div class="ctrl" data-ctrl="' + i.id + '">' + ctrlHTML(i.id) + '</div></li>';
         }).join('') + '</ul></section>';
     }).join('');
     atual = null;
     marcarChip();
   }
+
+  // ---------- Janela de personalizar ----------
+  var perso = $('perso'), P = null;
+  function regraTexto(g) {
+    if (g.minimo > 0 && g.maximo === 1) return ['Obrigatório · escolha 1', true];
+    if (g.minimo > 0) return ['Obrigatório · ' + g.minimo + ' a ' + g.maximo, true];
+    if (g.maximo === 1) return ['Opcional · escolha 1', false];
+    return ['Opcional · até ' + g.maximo, false];
+  }
+  function abrirPerso(pid) {
+    var p = ITENS[pid];
+    if (!p || !p.disponivel) return;
+    P = { pid: pid, qtd: 1 };
+    $('perso-topo').textContent = p.nome;
+    $('perso-corpo').innerHTML =
+      (p.foto_url ? '<img class="perso-foto" src="' + esc(p.foto_url) + '" alt="">' : '') +
+      '<div class="perso-cab"><h2 id="perso-h" tabindex="-1">' + esc(p.nome) + '</h2>' +
+        (p.descricao ? '<p>' + esc(p.descricao) + '</p>' : '') + '<p class="preco">' + fmt(p.preco) + '</p></div>' +
+      p.grupos.map(function (g) {
+        var r = regraTexto(g), tipo = g.maximo === 1 ? 'radio' : 'checkbox';
+        return '<fieldset class="grupo" data-grupo="' + g.id + '"><legend><span>' + esc(g.nome) + '</span><span class="regra' + (r[1] ? ' obrig' : '') + '">' + r[0] + '</span></legend>' +
+          g.opcoes.map(function (o) {
+            return '<label class="op-linha' + (o.disponivel ? '' : ' off') + '"><input type="' + tipo + '" name="g-' + g.id + '" value="' + o.id + '"' + (o.disponivel ? '' : ' disabled') + '>' +
+              '<span>' + esc(o.nome) + (o.disponivel ? '' : ' · esgotado') + '</span>' + (o.preco_extra ? '<small>+ ' + fmt(o.preco_extra) + '</small>' : '') + '</label>';
+          }).join('') + '<p class="err" hidden></p></fieldset>';
+      }).join('') +
+      '<div class="field"><label for="perso-obs">Alguma observação? <span class="opt-label">(opcional)</span></label>' +
+      '<input id="perso-obs" type="text" maxlength="140" placeholder="Ex.: bem passado, molho à parte"></div>';
+    $('perso-qtd').textContent = '1';
+    perso.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    perso.scrollTop = 0;
+    totalPerso();
+    $('perso-h').focus();
+  }
+  function fecharPerso() {
+    perso.hidden = true;
+    P = null;
+    if (sheet.hidden) document.documentElement.style.overflow = '';
+  }
+  function escolhidas() {
+    return Array.prototype.map.call(perso.querySelectorAll('.grupo input:checked'), function (i) { return i.value; });
+  }
+  function totalPerso() {
+    if (!P) return;
+    var unit = ITENS[P.pid].preco + escolhidas().reduce(function (s, id) { return s + OPC[id].o.preco_extra; }, 0);
+    $('perso-total').textContent = fmt(unit * P.qtd);
+  }
+  perso.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.type === 'checkbox') {
+      var g = OPC[t.value].g, marcados = perso.querySelectorAll('[name="g-' + g.id + '"]:checked');
+      if (marcados.length > g.maximo) { t.checked = false; A.aviso('Em "' + g.nome + '" dá para escolher até ' + g.maximo + '.'); }
+    }
+    var fs = t.closest('.grupo');
+    if (fs) { fs.classList.remove('erro'); fs.querySelector('.err').hidden = true; }
+    totalPerso();
+  });
+  $('perso-mais').addEventListener('click', function () { if (P && P.qtd < 50) { P.qtd++; $('perso-qtd').textContent = P.qtd; totalPerso(); } });
+  $('perso-menos').addEventListener('click', function () { if (P && P.qtd > 1) { P.qtd--; $('perso-qtd').textContent = P.qtd; totalPerso(); } });
+  $('fechar-perso').addEventListener('click', fecharPerso);
+  $('perso-add').addEventListener('click', function () {
+    if (!P) return;
+    var ops = escolhidas(), primeiro = null;
+    ITENS[P.pid].grupos.forEach(function (g) {
+      var n = ops.filter(function (id) { return OPC[id].g.id === g.id; }).length;
+      var fs = perso.querySelector('[data-grupo="' + g.id + '"]');
+      if (n < g.minimo || n > g.maximo) {
+        fs.classList.add('erro');
+        var e = fs.querySelector('.err');
+        e.textContent = g.minimo === 1 && g.maximo === 1 ? 'Escolha uma opção.' : 'Escolha de ' + g.minimo + ' a ' + g.maximo + '.';
+        e.hidden = false;
+        primeiro = primeiro || fs;
+      }
+    });
+    if (primeiro) { primeiro.scrollIntoView({ behavior: reduz ? 'auto' : 'smooth', block: 'center' }); return; }
+    var nome = ITENS[P.pid].nome, q = P.qtd;
+    somarLinha(P.pid, ops, $('perso-obs').value.trim(), q);
+    fecharPerso();
+    atualizarTudo();
+    A.aviso('Adicionado: ' + q + 'x ' + nome);
+  });
 
   // ---------- Contas ----------
   function form() {
@@ -555,7 +822,7 @@ window.APP = (function () {
   }
   function contas() {
     var sub = 0, qtd = 0;
-    Object.keys(cart).forEach(function (id) { sub += cart[id] * ITENS[id].preco; qtd += cart[id]; });
+    Object.keys(cart).forEach(function (k) { sub += cart[k].qtd * precoLinha(cart[k]); qtd += cart[k].qtd; });
     var taxa = form().modo === 'entrega' && qtd ? loja.taxa_entrega : 0;
     return { sub: sub, qtd: qtd, taxa: taxa, total: sub + taxa };
   }
@@ -563,15 +830,16 @@ window.APP = (function () {
   // ---------- Tela do pedido ----------
   var sheet = $('sheet');
   function renderSheet() {
-    var ids = Object.keys(cart), c = contas(), f = form();
-    if (!ids.length) {
+    var ks = Object.keys(cart), c = contas(), f = form();
+    if (!ks.length) {
       $('s-lines').innerHTML = '<p class="empty">Seu pedido está vazio.</p><button type="button" class="link-btn" data-act="back">Voltar ao cardápio</button>';
       $('s-totals').innerHTML = '';
     } else {
-      $('s-lines').innerHTML = ids.map(function (id) {
-        var i = ITENS[id];
-        return '<div class="line"><div><div class="l-name">' + esc(i.nome) + '</div><div class="l-sub">' + fmt(i.preco) + ' cada · ' + fmt(cart[id] * i.preco) + '</div></div>' +
-          '<div class="ctrl" data-ctrl="' + id + '">' + ctrlHTML(id) + '</div></div>';
+      $('s-lines').innerHTML = ks.map(function (k) {
+        var l = cart[k], i = ITENS[l.pid], d = descOpcoes(l), pu = precoLinha(l);
+        return '<div class="line"><div><div class="l-name">' + esc(i.nome) + '</div>' + (d ? '<div class="l-ops">' + esc(d) + '</div>' : '') +
+          '<div class="l-sub">' + fmt(pu) + ' cada · ' + fmt(l.qtd * pu) + '</div></div>' +
+          '<div class="ctrl">' + stepperHTML(k, l.qtd, i.nome) + '</div></div>';
       }).join('');
       $('s-totals').innerHTML = '<div><span>Subtotal</span><span>' + fmt(c.sub) + '</span></div>' +
         (f.modo === 'entrega' ? '<div><span>Taxa de entrega</span><span>' + fmt(c.taxa) + '</span></div>' : '<div><span>Retirada no balcão</span><span>Sem taxa</span></div>') +
@@ -587,9 +855,8 @@ window.APP = (function () {
     $('pix-hint').hidden = f.pagamento !== 'pix';
     $('send-total').textContent = fmt(c.total);
     var btn = $('confirmar');
-    var bloqueado = !c.qtd || !loja.aberta;
-    btn.setAttribute('aria-disabled', bloqueado ? 'true' : 'false');
-    if (!enviando) btn.firstChild.textContent = loja.aberta ? 'Confirmar pedido · ' : 'Lanchonete fechada · ';
+    btn.setAttribute('aria-disabled', !c.qtd || !estado.aberta ? 'true' : 'false');
+    if (!enviando) btn.firstChild.textContent = estado.aberta ? 'Confirmar pedido · ' : 'Lanchonete fechada · ';
   }
 
   function erro(campo, texto) {
@@ -618,7 +885,7 @@ window.APP = (function () {
     if (enviando) return;
     var c = contas();
     if (!c.qtd) return;
-    if (!loja.aberta) { A.aviso('A lanchonete está fechada agora.'); return; }
+    if (!estado.aberta) { A.aviso('A lanchonete está fechada agora.'); return; }
     var primeiro = validar();
     if (primeiro) { primeiro.focus(); A.aviso('Falta preencher alguns dados do pedido.'); return; }
     enviando = true;
@@ -627,7 +894,10 @@ window.APP = (function () {
     btn.firstChild.textContent = 'Enviando pedido… ';
     $('envio-erro').hidden = true;
     var f = form();
-    var itens = Object.keys(cart).map(function (id) { return { produto_id: id, quantidade: cart[id] }; });
+    var itens = Object.keys(cart).map(function (k) {
+      var l = cart[k];
+      return { produto_id: l.pid, quantidade: l.qtd, opcoes: l.ops, obs: l.obs };
+    });
     var r = await A.db.rpc('criar_pedido', { p_loja: SLUG, p_itens: itens, p_dados: f });
     if (r.error || !r.data || !r.data.token) {
       enviando = false;
@@ -635,8 +905,7 @@ window.APP = (function () {
         ? r.error.message : 'Sem conexão com a internet. Confira e tente de novo.';
       $('envio-erro').textContent = msg;
       $('envio-erro').hidden = false;
-      if (/fechada/i.test(msg)) { loja.aberta = false; renderLoja(); }
-      if (/esgotado|não está mais/i.test(msg)) carregar();
+      if (/fechada|indisponível|esgotado|não está mais|Confira a escolha/i.test(msg)) carregar();
       atualizarForm();
       return;
     }
@@ -674,32 +943,41 @@ window.APP = (function () {
 
   function atualizarTudo() {
     var a = document.activeElement, foco = null;
-    if (a && a.dataset && a.dataset.act && a.dataset.id) foco = { id: a.dataset.id, act: a.dataset.act, noPedido: !!a.closest('.sheet') };
+    if (a && a.dataset && a.dataset.act) foco = { k: a.dataset.k, id: a.dataset.id, act: a.dataset.act, noPedido: !!a.closest('#sheet') };
     if (!sheet.hidden) renderSheet();
     document.querySelectorAll('#menu [data-ctrl]').forEach(function (el) { el.innerHTML = ctrlHTML(el.dataset.ctrl); });
     renderBar();
     if (foco) {
       var escopo = foco.noPedido ? sheet : $('menu');
-      var sel = function (act) { return escopo.querySelector('[data-id="' + foco.id + '"][data-act="' + act + '"]'); };
-      var alvo = sel(foco.act) || sel('inc') || sel('add') || (foco.noPedido ? $('sheet-h') : null);
+      var porK = function (k, act) {
+        return Array.prototype.filter.call(escopo.querySelectorAll('[data-k]'), function (el) {
+          return el.dataset.k === k && (!act || el.dataset.act === act);
+        })[0] || null;
+      };
+      var alvo = null;
+      if (foco.k) alvo = porK(foco.k, foco.act) || porK(foco.k);
+      if (!alvo && foco.k) {
+        var pid = foco.k.split('|')[0];
+        alvo = escopo.querySelector('[data-id="' + pid + '"]');
+      }
+      if (!alvo && foco.id) alvo = escopo.querySelector('[data-k^="' + foco.id + '|"][data-act="inc"]') || escopo.querySelector('[data-id="' + foco.id + '"]');
+      if (!alvo && foco.noPedido) alvo = $('sheet-h');
       if (alvo) alvo.focus();
     }
-  }
-  function somar(id, n) {
-    if (!ITENS[id] || !ITENS[id].disponivel) return false;
-    cart[id] = Math.min((cart[id] || 0) + n, 50);
-    if (cart[id] <= 0) delete cart[id];
-    return true;
   }
 
   // ---------- Eventos ----------
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]');
     if (!b) return;
-    var id = b.dataset.id, act = b.dataset.act;
+    var act = b.dataset.act;
     if (act === 'back') { fecharPedido(); return; }
-    if (act === 'add' || act === 'inc') somar(id, 1);
-    if (act === 'dec') somar(id, -1);
+    if (act === 'perso') { abrirPerso(b.dataset.id); return; }
+    if (act === 'add') somarLinha(b.dataset.id, [], '', 1);
+    if (act === 'inc' || act === 'dec') {
+      var l = cart[b.dataset.k];
+      if (l) { l.qtd = Math.max(0, Math.min(50, l.qtd + (act === 'inc' ? 1 : -1))); if (!l.qtd) delete cart[b.dataset.k]; }
+    }
     atualizarTudo();
   });
   $('open-cart').addEventListener('click', abrirPedido);
@@ -707,7 +985,8 @@ window.APP = (function () {
   $('confirmar').addEventListener('click', confirmar);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
-    if (!$('chat').hidden) fecharChat();
+    if (!chat.hidden) fecharChat();
+    else if (!perso.hidden) fecharPerso();
     else if (!sheet.hidden) fecharPedido();
   });
   sheet.addEventListener('input', function (e) {
@@ -743,6 +1022,24 @@ window.APP = (function () {
     if (pend) return; pend = true;
     requestAnimationFrame(function () { pend = false; marcarChip(); });
   }, { passive: true });
+
+  // ---------- Conta opcional do freguês ----------
+  var eu = null;
+  async function conta() {
+    var aqui = 'index.html?loja=' + encodeURIComponent(loja.slug);
+    var link = 'entrar.html?volta=' + encodeURIComponent(aqui);
+    $('conta-link').href = link;
+    $('dica-link').href = link;
+    eu = await A.perfil();
+    if (!eu) return;
+    $('conta-link').textContent = eu.papel === 'admin' ? 'Administração' : eu.papel === 'lojista' ? 'Meu painel' : (eu.nome ? eu.nome.split(' ')[0] : 'Minha conta');
+    $('conta-link').href = A.DESTINO[eu.papel] || 'minha-conta.html';
+    $('conta-dica').hidden = true;
+    if (!$('f-nome').value && eu.nome) $('f-nome').value = eu.nome;
+    if (!$('f-tel').value && eu.telefone) $('f-tel').value = eu.telefone;
+    if (!$('f-end').value && eu.endereco) $('f-end').value = eu.endereco;
+    if (!$('f-ref').value && eu.referencia) $('f-ref').value = eu.referencia;
+  }
 
   // ---------- Atendente virtual (por regras, monta o vocabulário a partir do cardápio) ----------
   var chat = $('chat'), log = $('chat-log'), fab = $('fab'), boasVindas = false;
@@ -809,34 +1106,36 @@ window.APP = (function () {
     return 'Seu pedido está com ' + c.qtd + (c.qtd === 1 ? ' item' : ' itens') + ', ' + fmt(c.sub) + ' sem a entrega.';
   }
   function listaPedido() {
-    return Object.keys(cart).map(function (id) { return cart[id] + 'x ' + ITENS[id].nome; }).join(' · ');
+    return Object.keys(cart).map(function (k) { return cart[k].qtd + 'x ' + ITENS[cart[k].pid].nome; }).join(' · ');
   }
   var QUER = /\b(quero|queria|vou querer|me ve|me da|manda|mande|adiciona|adicione|adicionar|coloca|coloque|bota|pedir|pede|traz|traga|inclui|incluir|anota|anote)\b/;
 
   function responder(texto) {
     var t = norm(texto);
     var segs = norm(String(texto).replace(/[,;+]/g, ' e ')).split(/ (?:e|mais|tambem) /);
-    var quer = QUER.test(t), anotados = [], esgotados = [], opcoes = [];
+    var quer = QUER.test(t), anotados = [], esgotados = [], opcoes = [], escolher = [];
     segs.forEach(function (s) {
       var achados = acharItens(s);
       if (!achados.length) return;
       var q = qtdDe(s);
       if (achados.length === 1 && (quer || q)) {
         var id = achados[0], n = q || 1;
-        if (somar(id, n)) anotados.push(n + 'x ' + ITENS[id].nome);
-        else esgotados.push(ITENS[id].nome);
+        if (!ITENS[id].disponivel) esgotados.push(ITENS[id].nome);
+        else if (exigeEscolha(id)) { if (escolher.indexOf(id) < 0) escolher.push(id); }
+        else if (somarLinha(id, [], '', n)) anotados.push(n + 'x ' + ITENS[id].nome);
       } else {
         achados.forEach(function (id) { if (opcoes.indexOf(id) < 0) opcoes.push(id); });
       }
     });
-    if (!anotados.length && !opcoes.length && !esgotados.length) return intencao(t);
-    var r = { p: [], itens: opcoes, quick: QUICK_POS };
+    if (!anotados.length && !opcoes.length && !esgotados.length && !escolher.length) return intencao(t);
+    var r = { p: [], itens: opcoes.concat(escolher.filter(function (id) { return opcoes.indexOf(id) < 0; })), quick: QUICK_POS };
     if (anotados.length) {
       atualizarTudo();
       r.p.push('Anotei: ' + anotados.join(', ') + '.', resumo());
       r.acao = 'checkout';
     }
     if (esgotados.length) r.p.push('Hoje está esgotado: ' + esgotados.join(', ') + '.');
+    if (escolher.length) r.p.push('Para ' + escolher.map(function (id) { return ITENS[id].nome; }).join(' e ') + ', toque em "Escolher" para ver as opções.');
     if (opcoes.length) r.p.push(anotados.length ? 'E destes aqui, qual você quer?' : opcoes.length === 1 ? 'Está aqui. Quer que eu adicione?' : 'Temos estas opções. Qual você prefere?');
     return r;
   }
@@ -850,7 +1149,7 @@ window.APP = (function () {
     if (/\b(tirar|tira|remover|remove|cancelar|cancela|diminuir|trocar|troca)\b/.test(t))
       return { p: ['Para tirar ou trocar itens, toque em "Finalizar pedido" e use o botão de menos ao lado de cada item.'], acao: c.qtd ? 'checkout' : null, quick: QUICK };
     if (/\b(horario|horarios|abre|abrem|fecha|fecham|aberto|aberta|funciona|funcionam|funcionamento|que horas)\b/.test(t))
-      return { p: [loja.aberta ? 'Estamos abertos agora e recebendo pedidos.' : 'Estamos fechados agora.', loja.horario ? 'Funcionamos ' + loja.horario.charAt(0).toLowerCase() + loja.horario.slice(1) + '.' : ''].filter(Boolean), quick: QUICK };
+      return { p: [estado.texto + '.', loja.horario ? 'Funcionamos ' + loja.horario.charAt(0).toLowerCase() + loja.horario.slice(1) + '.' : ''].filter(Boolean), quick: QUICK };
     if (/\b(entrega|entregam|entregar|entregador|taxa|frete|delivery|demora|demorar|tempo|motoboy|retirar|retirada|buscar|bairro|chega)\b/.test(t))
       return { p: ['A entrega custa ' + fmt(loja.taxa_entrega) + (loja.tempo_entrega ? ' e leva de ' + loja.tempo_entrega.replace(/^de /i, '') : '') + '.', 'Se preferir, você retira no balcão sem taxa' + (loja.endereco ? ', na ' + loja.endereco : '') + '.'], quick: QUICK };
     if (/\b(pix|pagamento|pagar|paga|cartao|credito|debito|dinheiro|troco|maquininha)\b/.test(t))
@@ -862,8 +1161,8 @@ window.APP = (function () {
       if (!dest.length) dest = Object.keys(ITENS).filter(function (id) { return ITENS[id].disponivel; }).slice(0, 3);
       return { p: ['Estes são os que mais saem por aqui:'], itens: dest, quick: QUICK };
     }
-    var achou = null;
-    CATS.forEach(function (c) { c.k.forEach(function (k) { if ((' ' + tokens(t).join(' ') + ' ').indexOf(' ' + k + ' ') >= 0) achou = achou || c.cat; }); });
+    var achou = null, toks = ' ' + tokens(t).join(' ') + ' ';
+    CATS.forEach(function (c) { c.k.forEach(function (k) { if (toks.indexOf(' ' + k + ' ') >= 0) achou = achou || c.cat; }); });
     if (/\b(sanduiche|sanduiches|hamburguer|hamburgueres|burguer)\b/.test(t) && !achou)
       achou = MENU.filter(function (m) { return /lanche/i.test(A.semAcento(m.nome)); })[0] || null;
     if (achou) return { p: [achou.nome + (achou.nota ? ': ' + achou.nota : '')], itens: achou.itens.filter(function (i) { return i.disponivel; }).map(function (i) { return i.id; }), quick: QUICK };
@@ -890,9 +1189,10 @@ window.APP = (function () {
     var h = r.p.map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('');
     if (r.itens && r.itens.length) {
       h += '<div class="msg-items">' + r.itens.map(function (id) {
-        var i = ITENS[id], q = cart[id] || 0;
-        return '<div class="msg-item"><span><strong>' + esc(i.nome) + '</strong>' + fmt(i.preco) + (q ? ' · ' + q + ' no pedido' : '') + '</span>' +
-          (i.disponivel ? '<button type="button" data-bot="add" data-id="' + id + '" aria-label="Adicionar ' + esc(i.nome) + '">Adicionar</button>' : '<span>Esgotado</span>') + '</div>';
+        var i = ITENS[id], q = qtdProduto(id);
+        var botao = !i.disponivel ? '<span>Esgotado</span>'
+          : '<button type="button" data-bot="add" data-id="' + id + '" aria-label="' + (temOpcoes(id) ? 'Escolher opções de ' : 'Adicionar ') + esc(i.nome) + '">' + (temOpcoes(id) ? 'Escolher' : 'Adicionar') + '</button>';
+        return '<div class="msg-item"><span><strong>' + esc(i.nome) + '</strong>' + fmt(i.preco) + (q ? ' · ' + q + ' no pedido' : '') + '</span>' + botao + '</div>';
       }).join('') + '</div>';
     }
     if (r.acao === 'checkout') h += '<button type="button" class="msg-action" data-bot="checkout">Finalizar pedido</button>';
@@ -952,12 +1252,11 @@ window.APP = (function () {
     if (!b) return;
     if (b.dataset.bot === 'add') {
       var id = b.dataset.id;
-      if (somar(id, 1)) {
-        atualizarTudo();
-        botDiz({ p: ['Adicionei 1x ' + ITENS[id].nome + '.', resumo()], acao: 'checkout', quick: QUICK_POS });
-      } else {
-        botDiz({ p: [ITENS[id].nome + ' está esgotado no momento.'], quick: QUICK });
-      }
+      if (!ITENS[id] || !ITENS[id].disponivel) { botDiz({ p: ['Esse item está esgotado no momento.'], quick: QUICK }); return; }
+      if (temOpcoes(id)) { fecharChat(true); abrirPerso(id); return; }
+      somarLinha(id, [], '', 1);
+      atualizarTudo();
+      botDiz({ p: ['Adicionei 1x ' + ITENS[id].nome + '.', resumo()], acao: 'checkout', quick: QUICK_POS });
     } else if (b.dataset.bot === 'checkout') {
       if (!contas().qtd) { botDiz({ p: ['Seu pedido ainda está vazio. Me diz o que você quer.'], quick: QUICK }); return; }
       fecharChat(true);
