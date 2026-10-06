@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Cardápio digital com pedido online.">
+<title>Cardápio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="comum.css">
+<style>
+/* Layout: coluna única pensada para celular, cabeçalho escuro, cardápio em fundo branco, carrinho fixo embaixo, pedido em tela cheia. */
+
+/* Cabeçalho da loja */
+.store { background: var(--head); color: var(--head-ink); }
+.store .wrap { padding-block: 24px 20px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(32px, 9vw, 44px); line-height: 1; margin: 0; text-wrap: balance; }
+.brand h1 span { color: var(--pequi); }
+.tagline { margin: 12px 0 0; color: var(--head-muted); max-width: 46ch; }
+.status-row { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 14px; align-items: center; font-size: 14px; color: var(--head-muted); }
+.store .pill { background: var(--head-2); }
+.store .pill.ok { color: var(--ok); }
+.store .pill.off { color: var(--head-muted); }
+.facts { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.facts li { background: var(--head-2); border-radius: 12px; padding: 10px 12px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--head-muted); }
+.facts strong { display: block; margin-top: 2px; color: var(--head-ink); font-size: 15px; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+
+.ultimo { background: var(--ok-soft); color: var(--ok-ink); }
+.ultimo .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; font-size: 14px; font-weight: 600; }
+.ultimo a { color: inherit; font-weight: 800; }
+.fechado-aviso { background: var(--warn-soft); color: var(--warn-ink); }
+.fechado-aviso .wrap { padding-block: 10px; font-size: 14px; font-weight: 600; }
+
+/* Categorias */
+.cats { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.cats .wrap { display: flex; gap: 8px; overflow-x: auto; padding-block: 11px; scrollbar-width: none; }
+.cats .wrap::-webkit-scrollbar { display: none; }
+.chip { flex: none; padding: 8px 15px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 14px var(--font-body); text-decoration: none; }
+.chip[aria-current="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Itens */
+.cat { padding-block: 22px 4px; scroll-margin-top: calc(var(--nav-h) + env(safe-area-inset-top, 0px)); }
+.cat h2 { font-family: var(--font-display); font-weight: 400; font-size: 27px; line-height: 1.1; margin: 0; }
+.cat-note { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.items { list-style: none; margin: 8px 0 0; padding: 0; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding-block: 14px; border-bottom: 1px solid var(--line); }
+.item:last-child { border-bottom: 0; }
+.item.off .item-name, .item.off .item-price { color: var(--muted); }
+.item-info { min-width: 0; }
+.item-name { font-weight: 700; font-size: 16px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tag { font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; background: var(--pequi-soft); color: var(--pequi-ink); padding: 3px 7px; border-radius: 6px; }
+.tag.off { background: var(--surface); color: var(--muted); }
+.item-desc { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
+.item-price { font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.add { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--dark); background: transparent; color: var(--dark); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.add:hover { background: var(--dark-soft); }
+.stepper { display: inline-flex; align-items: center; gap: 2px; background: var(--dark); color: var(--on-dark); border-radius: 999px; padding: 3px; }
+.stepper button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.stepper output { min-width: 22px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.foot { padding-block: 12px 190px; }
+.credit { margin: 0; font-size: 13px; color: var(--muted); text-align: center; }
+
+/* Barra do carrinho */
+.cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--bg) 65%, transparent); }
+.cartbar button { width: 100%; max-width: 528px; margin-inline: auto; display: flex; align-items: center; gap: 12px; background: var(--dark); color: var(--on-dark); border: 0; border-radius: 16px; padding: 14px 16px; font: 700 16px var(--font-body); cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); }
+.count { background: var(--on-dark); color: var(--dark); border-radius: 999px; min-width: 26px; height: 26px; display: grid; place-items: center; font-size: 14px; padding-inline: 6px; box-sizing: border-box; font-variant-numeric: tabular-nums; }
+.cartbar .total { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* Tela do pedido */
+.sheet { position: fixed; inset: 0; z-index: 20; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
+.sheet-head { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.sheet-head .wrap { display: flex; align-items: center; gap: 12px; padding-block: 12px; }
+.sheet-head h2 { font-family: var(--font-display); font-weight: 400; font-size: 25px; margin: 0; outline: none; }
+.sheet-body { padding-block: 16px 190px; display: grid; gap: 14px; }
+.line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.l-name { font-weight: 700; }
+.l-sub { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.totals { display: grid; gap: 6px; font-variant-numeric: tabular-nums; }
+.totals div { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); }
+.totals .grand { color: var(--ink); font-weight: 800; font-size: 18px; padding-top: 6px; }
+.empty { margin: 0; color: var(--muted); }
+.link-btn { justify-self: start; background: none; border: 0; padding: 0; color: var(--dark); font: 700 15px var(--font-body); cursor: pointer; text-decoration: underline; }
+.pays { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pays .choice .opt { border: 1px solid var(--line); background: var(--bg); border-radius: 12px; font-size: 14px; }
+.pays[aria-invalid="true"] .opt { border-color: var(--danger); }
+.sheet-foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--surface); border-top: 1px solid var(--line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+.foot-inner { max-width: 528px; margin-inline: auto; display: grid; gap: 8px; }
+.privacy { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
+.envio-erro { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--danger-soft); color: var(--danger); font-size: 14px; font-weight: 600; }
+
+/* Atendente virtual */
+.fab { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15; display: flex; align-items: center; gap: 8px; background: var(--dark); color: var(--on-dark); border: 0; border-radius: 999px; padding: 8px 16px 8px 8px; font: 700 15px var(--font-body); cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); }
+body.has-cart .fab { bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+.fab-dot { width: 34px; height: 34px; border-radius: 50%; background: var(--pequi); color: var(--dark); display: grid; place-items: center; }
+.chat { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; margin-left: auto; width: 100%; max-width: 440px; height: min(82vh, 640px); height: min(82dvh, 640px); background: var(--bg); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 32px rgba(0, 0, 0, .25); display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+@media (min-width: 600px) { .chat { right: 16px; bottom: 16px; border-radius: 18px; } }
+.chat-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--head); color: var(--head-ink); }
+.chat-title { font-weight: 800; line-height: 1.2; }
+.chat-sub { font-size: 12px; color: var(--head-muted); }
+.chat-close { margin-left: auto; flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--head-2); color: var(--head-ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.chat-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; overscroll-behavior: contain; }
+.msg { max-width: 86%; padding: 10px 12px; border-radius: 16px; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; box-sizing: border-box; }
+.msg.bot { align-self: flex-start; background: var(--surface); border-bottom-left-radius: 6px; }
+.msg.me { align-self: flex-end; background: var(--dark); color: var(--on-dark); border-bottom-right-radius: 6px; }
+.msg p { margin: 0; }
+.msg p + p { margin-top: 6px; }
+.msg-items { display: grid; gap: 6px; margin-top: 8px; }
+.msg-item { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px 8px 8px 10px; }
+.msg-item span { flex: 1; min-width: 0; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.msg-item strong { display: block; color: var(--ink); }
+.msg-item button, .msg-action { flex: none; background: var(--dark); color: var(--on-dark); border: 0; border-radius: 9px; padding: 8px 11px; font: 700 13px var(--font-body); cursor: pointer; text-decoration: none; display: inline-block; }
+.msg-action { margin-top: 8px; font-size: 14px; padding: 10px 14px; }
+.typing { align-self: flex-start; color: var(--muted); font-size: 13px; padding-inline: 4px; }
+.chat-quick { display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px 4px; scrollbar-width: none; border-top: 1px solid var(--line); }
+.chat-quick::-webkit-scrollbar { display: none; }
+.chat-quick button { flex: none; background: var(--surface); border: 1px solid var(--line); color: var(--ink); border-radius: 999px; padding: 8px 13px; font: 600 13px var(--font-body); cursor: pointer; }
+.chat-form { display: flex; gap: 8px; padding: 8px 14px 12px; }
+.chat-form input[type="text"] { flex: 1; min-width: 0; background: var(--surface); }
+.chat-send { flex: none; width: 48px; border-radius: 12px; border: 0; background: var(--dark); color: var(--on-dark); display: grid; place-items: center; cursor: pointer; padding: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .add, .chip, .cartbar button, .btn { transition: background-color .15s ease, transform .1s ease; }
+  .add:active, .stepper button:active, .cartbar button:active, .btn:active { transform: scale(.96); }
+}
+</style>
+</head>
+<body>
+
+<div class="demo-strip" id="demo-strip" role="note" hidden>Demonstração · lanchonete fictícia · Pix de teste</div>
+
+<header class="store" id="store" hidden>
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark" id="mark" aria-hidden="true"></div>
+      <h1 id="loja-nome"></h1>
+    </div>
+    <p class="tagline" id="tagline"></p>
+    <div class="status-row">
+      <span class="pill" id="status"></span>
+      <span id="info"></span>
+    </div>
+    <ul class="facts" id="facts"></ul>
+  </div>
+</header>
+
+<div class="fechado-aviso" id="fechado-aviso" hidden><div class="wrap">A lanchonete está fechada agora. Você pode olhar o cardápio, mas os pedidos só são aceitos quando ela abrir.</div></div>
+<div class="ultimo" id="ultimo" hidden><div class="wrap"><span>Você fez um pedido por aqui.</span><a id="ultimo-link" href="#">Acompanhar pedido</a></div></div>
+
+<nav class="cats" id="cats" aria-label="Categorias do cardápio" hidden><div class="wrap" id="nav"></div></nav>
+
+<main class="wrap" id="menu"><div class="state">Carregando cardápio…</div></main>
+
+<footer class="wrap foot" id="rodape" hidden>
+  <p class="credit">Cardápio digital com pedido online, sem comissão por pedido.</p>
+</footer>
+
+<div class="cartbar" id="cartbar" hidden>
+  <button id="open-cart" type="button">
+    <span class="count" id="cb-count">0</span>
+    <span>Ver pedido</span>
+    <span class="total" id="cb-total">R$ 0,00</span>
+  </button>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-h">
+  <div class="sheet-head">
+    <div class="wrap">
+      <button class="icon-btn" id="close-sheet" type="button" aria-label="Voltar ao cardápio">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+      <h2 id="sheet-h" tabindex="-1">Seu pedido</h2>
+    </div>
+  </div>
+
+  <div class="wrap sheet-body">
+    <section class="block" aria-labelledby="b-itens">
+      <h3 id="b-itens">Itens</h3>
+      <div id="s-lines"></div>
+      <div class="totals" id="s-totals"></div>
+    </section>
+
+    <section class="block" aria-labelledby="b-dados">
+      <h3 id="b-dados">Seus dados</h3>
+      <div class="field">
+        <label for="f-nome">Nome</label>
+        <input id="f-nome" type="text" autocomplete="name" placeholder="Como devemos te chamar?" aria-describedby="e-nome">
+        <p class="err" id="e-nome" hidden></p>
+      </div>
+      <div class="field">
+        <label for="f-tel">WhatsApp para contato</label>
+        <input id="f-tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(63) 9 9999-9999" aria-describedby="e-tel">
+        <p class="err" id="e-tel" hidden></p>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="b-receber">
+      <h3 id="b-receber">Como você quer receber?</h3>
+      <div class="seg" role="radiogroup" aria-labelledby="b-receber">
+        <label class="choice"><input type="radio" name="modo" id="m-entrega" value="entrega" checked><span class="opt" id="opt-entrega">Entrega</span></label>
+        <label class="choice"><input type="radio" name="modo" id="m-retirada" value="retirada"><span class="opt">Retirar no balcão</span></label>
+      </div>
+      <div id="addr" class="field">
+        <label for="f-end">Endereço</label>
+        <input id="f-end" type="text" autocomplete="street-address" placeholder="Rua, número e bairro" aria-describedby="e-end">
+        <p class="err" id="e-end" hidden></p>
+      </div>
+      <div id="ref" class="field">
+        <label for="f-ref">Ponto de referência <span class="opt-label">(opcional)</span></label>
+        <input id="f-ref" type="text" placeholder="Ex.: casa de muro azul, perto da praça">
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="b-pag">
+      <h3 id="b-pag">Pagamento</h3>
+      <div class="pays" id="pays" role="radiogroup" aria-labelledby="b-pag" aria-describedby="e-pag">
+        <label class="choice"><input type="radio" name="pag" id="p-pix" value="pix"><span class="opt">Pix</span></label>
+        <label class="choice"><input type="radio" name="pag" id="p-din" value="dinheiro"><span class="opt">Dinheiro</span></label>
+        <label class="choice"><input type="radio" name="pag" id="p-cartao" value="cartao"><span class="opt">Cartão (maquininha)</span></label>
+      </div>
+      <p class="err" id="e-pag" hidden></p>
+      <p class="hint" id="pix-hint" hidden>O QR Code do Pix aparece logo depois que você confirmar o pedido, já com o valor certo.</p>
+      <div id="troco" class="field" hidden>
+        <label for="f-troco">Troco para quanto? <span class="opt-label">(opcional)</span></label>
+        <input id="f-troco" type="text" inputmode="decimal" placeholder="Ex.: 50">
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="b-obs">
+      <h3 id="b-obs">Observação</h3>
+      <div class="field">
+        <label for="f-obs" class="sr">Observação do pedido</label>
+        <textarea id="f-obs" rows="2" placeholder="Ex.: X-Tudo sem cebola, refrigerante de guaraná"></textarea>
+      </div>
+    </section>
+  </div>
+
+  <div class="sheet-foot">
+    <div class="foot-inner">
+      <p class="envio-erro" id="envio-erro" role="alert" hidden></p>
+      <button class="btn big" id="confirmar" type="button">Confirmar pedido · <span id="send-total">R$ 0,00</span></button>
+      <p class="privacy">Seus dados são usados só para preparar e entregar este pedido.</p>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fab" type="button" aria-haspopup="dialog" aria-controls="chat" hidden>
+  <span class="fab-dot"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"></path></svg></span>
+  Atendente
+</button>
+
+<section class="chat" id="chat" role="dialog" aria-labelledby="chat-title" hidden>
+  <div class="chat-head">
+    <div class="mark sm" id="chat-mark" aria-hidden="true"></div>
+    <div>
+      <div class="chat-title" id="chat-title">Atendente virtual</div>
+      <div class="chat-sub" id="chat-sub">Responde na hora</div>
+    </div>
+    <button class="chat-close" id="chat-close" type="button" aria-label="Fechar atendente">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path></svg>
+    </button>
+  </div>
+  <div class="chat-log" id="chat-log" aria-live="polite"></div>
+  <div class="chat-quick" id="chat-quick"></div>
+  <form class="chat-form" id="chat-form" autocomplete="off">
+    <label for="chat-input" class="sr">Mensagem para o atendente</label>
+    <input id="chat-input" type="text" placeholder="Ex.: quero 2 X-Tudo e um suco de cajá" enterkeyhint="send">
+    <button class="chat-send" type="submit" aria-label="Enviar mensagem">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"></path></svg>
+    </button>
+  </form>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="comum.js"></script>
+<script>
+(function () {
+  var A = window.APP, $ = A.$, fmt = A.fmt, esc = A.esc;
+  var SLUG = A.slugAtual();
+  var loja = null, MENU = [], ITENS = {}, cart = {}, enviando = false;
+  var reduz = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var PLUS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+  var MINUS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+
+  // ---------- Carregar a loja e o cardápio do banco ----------
+  function falha(texto, tentarDeNovo) {
+    $('menu').innerHTML = '<div class="state"><strong>' + esc(texto) + '</strong>' +
+      (tentarDeNovo ? '<button class="btn" type="button" id="retry">Tentar de novo</button>' : '') + '</div>';
+    var r = $('retry');
+    if (r) r.addEventListener('click', carregar);
+  }
+
+  async function carregar() {
+    $('menu').innerHTML = '<div class="state">Carregando cardápio…</div>';
+    var r1 = await A.db.from('lojas')
+      .select('id, slug, nome, descricao, endereco, horario, whatsapp, taxa_entrega, tempo_entrega, aberta')
+      .eq('slug', SLUG).maybeSingle();
+    if (r1.error) return falha('Não foi possível carregar o cardápio. Confira sua internet e tente de novo.', true);
+    if (!r1.data) return falha('Não encontramos esta lanchonete. Confira o link.', false);
+    loja = r1.data;
+    loja.taxa_entrega = Number(loja.taxa_entrega);
+    var res = await Promise.all([
+      A.db.from('categorias').select('id, nome, nota, ordem').eq('loja_id', loja.id).order('ordem'),
+      A.db.from('produtos').select('id, categoria_id, nome, descricao, preco, tag, disponivel, ordem').eq('loja_id', loja.id).order('ordem')
+    ]);
+    if (res[0].error || res[1].error) return falha('Não foi possível carregar o cardápio. Confira sua internet e tente de novo.', true);
+    MENU = res[0].data.map(function (c) {
+      return {
+        id: c.id, nome: c.nome, nota: c.nota,
+        itens: res[1].data.filter(function (p) { return p.categoria_id === c.id; })
+          .map(function (p) { p.preco = Number(p.preco); return p; })
+      };
+    }).filter(function (c) { return c.itens.length; });
+    ITENS = {};
+    MENU.forEach(function (c) { c.itens.forEach(function (i) { ITENS[i.id] = i; }); });
+    Object.keys(cart).forEach(function (id) { if (!ITENS[id] || !ITENS[id].disponivel) delete cart[id]; });
+    montarBot();
+    renderLoja();
+    renderMenu();
+    renderBar();
+  }
+
+  function renderLoja() {
+    document.title = loja.nome + ' · Cardápio';
+    $('demo-strip').hidden = loja.slug !== 'pequi-lanches';
+    $('mark').textContent = A.iniciais(loja.nome);
+    $('chat-mark').textContent = A.iniciais(loja.nome);
+    $('chat-sub').textContent = loja.nome + ' · responde na hora';
+    var partes = loja.nome.trim().split(/\s+/);
+    $('loja-nome').innerHTML = partes.length > 1
+      ? esc(partes.slice(0, -1).join(' ')) + ' <span>' + esc(partes[partes.length - 1]) + '</span>'
+      : esc(loja.nome);
+    $('tagline').textContent = loja.descricao || '';
+    $('tagline').hidden = !loja.descricao;
+    var st = $('status');
+    st.className = 'pill ' + (loja.aberta ? 'ok' : 'off');
+    st.textContent = loja.aberta ? 'Aberto agora' : 'Fechado agora';
+    $('info').textContent = [loja.horario, loja.endereco].filter(Boolean).join(' · ');
+    $('facts').innerHTML =
+      '<li>Entrega<strong>' + fmt(loja.taxa_entrega) + '</strong></li>' +
+      '<li>Tempo médio<strong>' + esc(loja.tempo_entrega || 'Consulte') + '</strong></li>' +
+      '<li>Retirada no balcão<strong>Sem taxa</strong></li>' +
+      '<li>Pagamento<strong>Pix, dinheiro, cartão</strong></li>';
+    $('opt-entrega').textContent = 'Entrega · ' + fmt(loja.taxa_entrega);
+    $('fechado-aviso').hidden = loja.aberta;
+    $('store').hidden = false;
+    $('cats').hidden = false;
+    $('rodape').hidden = false;
+    $('fab').hidden = false;
+    var tk = A.ler('ultimo-pedido:' + loja.slug);
+    if (tk) { $('ultimo-link').href = 'pedido.html?t=' + encodeURIComponent(tk); $('ultimo').hidden = false; }
+  }
+
+  function ctrlHTML(id) {
+    var i = ITENS[id], q = cart[id] || 0, n = esc(i.nome);
+    if (!i.disponivel) return '';
+    if (!q) return '<button type="button" class="add" data-act="add" data-id="' + id + '" aria-label="Adicionar ' + n + '">' + PLUS + '</button>';
+    return '<div class="stepper" role="group" aria-label="Quantidade de ' + n + '">' +
+      '<button type="button" data-act="dec" data-id="' + id + '" aria-label="Tirar um ' + n + '">' + MINUS + '</button>' +
+      '<output>' + q + '</output>' +
+      '<button type="button" data-act="inc" data-id="' + id + '" aria-label="Mais um ' + n + '">' + PLUS + '</button></div>';
+  }
+
+  function renderMenu() {
+    $('nav').innerHTML = MENU.map(function (c) {
+      return '<a class="chip" href="#c-' + c.id + '" data-cat="c-' + c.id + '">' + esc(c.nome) + '</a>';
+    }).join('');
+    $('menu').innerHTML = MENU.map(function (c) {
+      return '<section class="cat" id="c-' + c.id + '" aria-labelledby="h-' + c.id + '">' +
+        '<h2 id="h-' + c.id + '">' + esc(c.nome) + '</h2>' + (c.nota ? '<p class="cat-note">' + esc(c.nota) + '</p>' : '') +
+        '<ul class="items">' + c.itens.map(function (i) {
+          var tag = !i.disponivel ? '<span class="tag off">Esgotado</span>' : i.tag ? '<span class="tag">' + esc(i.tag) + '</span>' : '';
+          return '<li class="item' + (i.disponivel ? '' : ' off') + '"><div class="item-info"><div class="item-name">' + esc(i.nome) + tag + '</div>' +
+            (i.descricao ? '<p class="item-desc">' + esc(i.descricao) + '</p>' : '') +
+            '<div class="item-price">' + fmt(i.preco) + '</div></div>' +
+            '<div class="ctrl" data-ctrl="' + i.id + '">' + ctrlHTML(i.id) + '</div></li>';
+        }).join('') + '</ul></section>';
+    }).join('');
+    atual = null;
+    marcarChip();
+  }
+
+  // ---------- Contas ----------
+  function form() {
+    var modo = document.querySelector('input[name="modo"]:checked');
+    var pag = document.querySelector('input[name="pag"]:checked');
+    return {
+      nome: $('f-nome').value.trim(), telefone: $('f-tel').value.trim(),
+      modo: modo ? modo.value : 'entrega', endereco: $('f-end').value.trim(), referencia: $('f-ref').value.trim(),
+      pagamento: pag ? pag.value : '', troco: $('f-troco').value.trim(), observacao: $('f-obs').value.trim()
+    };
+  }
+  function contas() {
+    var sub = 0, qtd = 0;
+    Object.keys(cart).forEach(function (id) { sub += cart[id] * ITENS[id].preco; qtd += cart[id]; });
+    var taxa = form().modo === 'entrega' && qtd ? loja.taxa_entrega : 0;
+    return { sub: sub, qtd: qtd, taxa: taxa, total: sub + taxa };
+  }
+
+  // ---------- Tela do pedido ----------
+  var sheet = $('sheet');
+  function renderSheet() {
+    var ids = Object.keys(cart), c = contas(), f = form();
+    if (!ids.length) {
+      $('s-lines').innerHTML = '<p class="empty">Seu pedido está vazio.</p><button type="button" class="link-btn" data-act="back">Voltar ao cardápio</button>';
+      $('s-totals').innerHTML = '';
+    } else {
+      $('s-lines').innerHTML = ids.map(function (id) {
+        var i = ITENS[id];
+        return '<div class="line"><div><div class="l-name">' + esc(i.nome) + '</div><div class="l-sub">' + fmt(i.preco) + ' cada · ' + fmt(cart[id] * i.preco) + '</div></div>' +
+          '<div class="ctrl" data-ctrl="' + id + '">' + ctrlHTML(id) + '</div></div>';
+      }).join('');
+      $('s-totals').innerHTML = '<div><span>Subtotal</span><span>' + fmt(c.sub) + '</span></div>' +
+        (f.modo === 'entrega' ? '<div><span>Taxa de entrega</span><span>' + fmt(c.taxa) + '</span></div>' : '<div><span>Retirada no balcão</span><span>Sem taxa</span></div>') +
+        '<div class="grand"><span>Total</span><span>' + fmt(c.total) + '</span></div>';
+    }
+    atualizarForm();
+  }
+  function atualizarForm() {
+    var f = form(), c = contas();
+    $('addr').hidden = f.modo !== 'entrega';
+    $('ref').hidden = f.modo !== 'entrega';
+    $('troco').hidden = f.pagamento !== 'dinheiro';
+    $('pix-hint').hidden = f.pagamento !== 'pix';
+    $('send-total').textContent = fmt(c.total);
+    var btn = $('confirmar');
+    var bloqueado = !c.qtd || !loja.aberta;
+    btn.setAttribute('aria-disabled', bloqueado ? 'true' : 'false');
+    if (!enviando) btn.firstChild.textContent = loja.aberta ? 'Confirmar pedido · ' : 'Lanchonete fechada · ';
+  }
+
+  function erro(campo, texto) {
+    var el = $('e-' + campo);
+    el.textContent = texto || '';
+    el.hidden = !texto;
+    var alvo = campo === 'pag' ? $('pays') : $('f-' + campo);
+    if (texto) alvo.setAttribute('aria-invalid', 'true'); else alvo.removeAttribute('aria-invalid');
+  }
+  function validar() {
+    var f = form(), primeiro = null;
+    erro('nome', f.nome ? '' : 'Digite seu nome.');
+    if (!f.nome) primeiro = primeiro || $('f-nome');
+    var telOk = f.telefone.replace(/\D/g, '').length >= 10;
+    erro('tel', telOk ? '' : 'Informe um WhatsApp com DDD, para a lanchonete falar com você se precisar.');
+    if (!telOk) primeiro = primeiro || $('f-tel');
+    var faltaEnd = f.modo === 'entrega' && !f.endereco;
+    erro('end', faltaEnd ? 'Informe rua, número e bairro.' : '');
+    if (faltaEnd) primeiro = primeiro || $('f-end');
+    erro('pag', f.pagamento ? '' : 'Escolha como vai pagar.');
+    if (!f.pagamento) primeiro = primeiro || $('p-pix');
+    return primeiro;
+  }
+
+  async function confirmar() {
+    if (enviando) return;
+    var c = contas();
+    if (!c.qtd) return;
+    if (!loja.aberta) { A.aviso('A lanchonete está fechada agora.'); return; }
+    var primeiro = validar();
+    if (primeiro) { primeiro.focus(); A.aviso('Falta preencher alguns dados do pedido.'); return; }
+    enviando = true;
+    var btn = $('confirmar');
+    btn.setAttribute('aria-disabled', 'true');
+    btn.firstChild.textContent = 'Enviando pedido… ';
+    $('envio-erro').hidden = true;
+    var f = form();
+    var itens = Object.keys(cart).map(function (id) { return { produto_id: id, quantidade: cart[id] }; });
+    var r = await A.db.rpc('criar_pedido', { p_loja: SLUG, p_itens: itens, p_dados: f });
+    if (r.error || !r.data || !r.data.token) {
+      enviando = false;
+      var msg = r.error && r.error.message && !/fetch|network/i.test(r.error.message)
+        ? r.error.message : 'Sem conexão com a internet. Confira e tente de novo.';
+      $('envio-erro').textContent = msg;
+      $('envio-erro').hidden = false;
+      if (/fechada/i.test(msg)) { loja.aberta = false; renderLoja(); }
+      if (/esgotado|não está mais/i.test(msg)) carregar();
+      atualizarForm();
+      return;
+    }
+    A.guardar('ultimo-pedido:' + loja.slug, r.data.token);
+    location.href = 'pedido.html?t=' + encodeURIComponent(r.data.token);
+  }
+
+  function abrirPedido() {
+    sheet.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    renderSheet();
+    sheet.scrollTop = 0;
+    $('sheet-h').focus();
+  }
+  function fecharPedido() {
+    sheet.hidden = true;
+    document.documentElement.style.overflow = '';
+    renderBar();
+    if (!$('cartbar').hidden) $('open-cart').focus();
+  }
+
+  function renderBar() {
+    var c = contas();
+    $('cartbar').hidden = !c.qtd;
+    document.body.classList.toggle('has-cart', c.qtd > 0);
+    $('cb-count').textContent = c.qtd;
+    $('cb-total').textContent = fmt(c.sub);
+    $('open-cart').setAttribute('aria-label', 'Ver pedido: ' + c.qtd + (c.qtd === 1 ? ' item, ' : ' itens, ') + fmt(c.sub));
+  }
+
+  function atualizarTudo() {
+    var a = document.activeElement, foco = null;
+    if (a && a.dataset && a.dataset.act && a.dataset.id) foco = { id: a.dataset.id, act: a.dataset.act, noPedido: !!a.closest('.sheet') };
+    if (!sheet.hidden) renderSheet();
+    document.querySelectorAll('#menu [data-ctrl]').forEach(function (el) { el.innerHTML = ctrlHTML(el.dataset.ctrl); });
+    renderBar();
+    if (foco) {
+      var escopo = foco.noPedido ? sheet : $('menu');
+      var sel = function (act) { return escopo.querySelector('[data-id="' + foco.id + '"][data-act="' + act + '"]'); };
+      var alvo = sel(foco.act) || sel('inc') || sel('add') || (foco.noPedido ? $('sheet-h') : null);
+      if (alvo) alvo.focus();
+    }
+  }
+  function somar(id, n) {
+    if (!ITENS[id] || !ITENS[id].disponivel) return false;
+    cart[id] = Math.min((cart[id] || 0) + n, 50);
+    if (cart[id] <= 0) delete cart[id];
+    return true;
+  }
+
+  // ---------- Eventos ----------
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var id = b.dataset.id, act = b.dataset.act;
+    if (act === 'back') { fecharPedido(); return; }
+    if (act === 'add' || act === 'inc') somar(id, 1);
+    if (act === 'dec') somar(id, -1);
+    atualizarTudo();
+  });
+  $('open-cart').addEventListener('click', abrirPedido);
+  $('close-sheet').addEventListener('click', fecharPedido);
+  $('confirmar').addEventListener('click', confirmar);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!$('chat').hidden) fecharChat();
+    else if (!sheet.hidden) fecharPedido();
+  });
+  sheet.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'f-nome' || t.id === 'f-end' || t.id === 'f-tel') erro(t.id.slice(2), '');
+    if (t.name === 'pag') erro('pag', '');
+    if (t.name === 'modo') { erro('end', ''); renderSheet(); return; }
+    atualizarForm();
+  });
+
+  // Categorias: rolar até a seção e marcar a ativa
+  var navWrap = $('nav'), atual = null;
+  navWrap.addEventListener('click', function (e) {
+    var a = e.target.closest('.chip');
+    if (!a) return;
+    e.preventDefault();
+    $(a.dataset.cat).scrollIntoView({ behavior: reduz ? 'auto' : 'smooth', block: 'start' });
+  });
+  function marcarChip() {
+    if (!MENU.length) return;
+    var limite = $('cats').getBoundingClientRect().bottom + 16, cur = 'c-' + MENU[0].id;
+    MENU.forEach(function (c) { var s = $('c-' + c.id); if (s && s.getBoundingClientRect().top <= limite) cur = 'c-' + c.id; });
+    if (cur === atual) return;
+    atual = cur;
+    navWrap.querySelectorAll('.chip').forEach(function (ch) {
+      var on = ch.dataset.cat === cur;
+      ch.setAttribute('aria-current', on ? 'true' : 'false');
+      if (on && navWrap.scrollTo) navWrap.scrollTo({ left: Math.max(0, ch.offsetLeft - 16), behavior: reduz ? 'auto' : 'smooth' });
+    });
+  }
+  var pend = false;
+  window.addEventListener('scroll', function () {
+    if (pend) return; pend = true;
+    requestAnimationFrame(function () { pend = false; marcarChip(); });
+  }, { passive: true });
+
+  // ---------- Atendente virtual (por regras, monta o vocabulário a partir do cardápio) ----------
+  var chat = $('chat'), log = $('chat-log'), fab = $('fab'), boasVindas = false;
+  var NUM = { um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10 };
+  var STOP = { de: 1, do: 1, da: 1, dos: 1, das: 1, com: 1, o: 1, a: 1, os: 1, as: 1, pra: 1, para: 1, por: 1, favor: 1 };
+  var SIN = { coca: 'refrigerante', cocacola: 'refrigerante', guarana: 'refrigerante', fanta: 'refrigerante', refri: 'refrigerante',
+    refris: 'refrigerante', refrigerantes: 'refrigerante', latinha: 'lata', macaxeira: 'mandioca', aipim: 'mandioca',
+    fritas: 'batata', batatinha: 'batata', hotdog: 'cachorro', dog: 'cachorro', xburger: 'xburguer', xbuguer: 'xburguer',
+    acais: 'acai', sucos: 'suco', aguas: 'agua' };
+  var QUICK = ['Ver cardápio', 'Mais pedidos', 'Horário', 'Entrega', 'Pagamento'];
+  var QUICK_POS = ['Finalizar pedido', 'Ver cardápio', 'Pagamento'];
+  var CHAVES = {}, CATS = [];
+
+  function norm(s) {
+    return A.semAcento(String(s || '').toLowerCase())
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\bhot dog\b/g, 'hotdog')
+      .replace(/\b(\d+) ?ml\b/g, '$1')
+      .replace(/\b(\d+) ?(l|lt|litro|litros)\b/g, '$1l')
+      .replace(/\b(\d+) ?(g|gr|kg)\b/g, '$1')
+      .replace(/\bx (?=[a-z]{3,})/g, 'x')
+      .replace(/\s+/g, ' ').trim();
+  }
+  function tokens(s) {
+    return norm(s).split(' ').filter(function (w) { return w && !STOP[w]; }).map(function (w) { return SIN[w] || w; });
+  }
+  function montarBot() {
+    CHAVES = {};
+    Object.keys(ITENS).forEach(function (id) {
+      var tk = tokens(ITENS[id].nome);
+      var semNum = tk.filter(function (w) { return !/^\d+$/.test(w); });
+      var semMedida = semNum.filter(function (w) { return !/^\d+l$/.test(w); });
+      var ks = {};
+      [tk.join(' '), semNum.join(' '), semMedida.join(' ')].forEach(function (k) { if (k) ks[k] = 1; });
+      semNum.forEach(function (w) { if (w.length >= 4 || /\d/.test(w)) ks[w] = 1; });
+      for (var i = 0; i + 1 < tk.length; i++) ks[tk[i] + ' ' + tk[i + 1]] = 1;
+      CHAVES[id] = Object.keys(ks);
+    });
+    CATS = MENU.map(function (c) {
+      var w = tokens(c.nome).join(' '), ks = [w];
+      if (/oes$/.test(w)) ks.push(w.replace(/oes$/, 'ao'));
+      if (/s$/.test(w)) ks.push(w.replace(/s$/, ''));
+      else ks.push(w + 's');
+      return { cat: c, k: ks };
+    });
+  }
+  function acharItens(seg) {
+    var pad = ' ' + tokens(seg).join(' ') + ' ', pontos = {}, max = 0;
+    Object.keys(CHAVES).forEach(function (id) {
+      var p = 0;
+      CHAVES[id].forEach(function (k) { if (pad.indexOf(' ' + k + ' ') >= 0) p += k.length; });
+      if (p) { pontos[id] = p; max = Math.max(max, p); }
+    });
+    return Object.keys(pontos).filter(function (id) { return pontos[id] === max; });
+  }
+  function qtdDe(t) {
+    var m = (' ' + norm(t) + ' ').match(/ (\d{1,2}|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez) (?!litros? )/);
+    if (!m) return 0;
+    var n = NUM[m[1]] || parseInt(m[1], 10);
+    return n > 0 && n <= 20 ? n : 0;
+  }
+  function resumo() {
+    var c = contas();
+    return 'Seu pedido está com ' + c.qtd + (c.qtd === 1 ? ' item' : ' itens') + ', ' + fmt(c.sub) + ' sem a entrega.';
+  }
+  function listaPedido() {
+    return Object.keys(cart).map(function (id) { return cart[id] + 'x ' + ITENS[id].nome; }).join(' · ');
+  }
+  var QUER = /\b(quero|queria|vou querer|me ve|me da|manda|mande|adiciona|adicione|adicionar|coloca|coloque|bota|pedir|pede|traz|traga|inclui|incluir|anota|anote)\b/;
+
+  function responder(texto) {
+    var t = norm(texto);
+    var segs = norm(String(texto).replace(/[,;+]/g, ' e ')).split(/ (?:e|mais|tambem) /);
+    var quer = QUER.test(t), anotados = [], esgotados = [], opcoes = [];
+    segs.forEach(function (s) {
+      var achados = acharItens(s);
+      if (!achados.length) return;
+      var q = qtdDe(s);
+      if (achados.length === 1 && (quer || q)) {
+        var id = achados[0], n = q || 1;
+        if (somar(id, n)) anotados.push(n + 'x ' + ITENS[id].nome);
+        else esgotados.push(ITENS[id].nome);
+      } else {
+        achados.forEach(function (id) { if (opcoes.indexOf(id) < 0) opcoes.push(id); });
+      }
+    });
+    if (!anotados.length && !opcoes.length && !esgotados.length) return intencao(t);
+    var r = { p: [], itens: opcoes, quick: QUICK_POS };
+    if (anotados.length) {
+      atualizarTudo();
+      r.p.push('Anotei: ' + anotados.join(', ') + '.', resumo());
+      r.acao = 'checkout';
+    }
+    if (esgotados.length) r.p.push('Hoje está esgotado: ' + esgotados.join(', ') + '.');
+    if (opcoes.length) r.p.push(anotados.length ? 'E destes aqui, qual você quer?' : opcoes.length === 1 ? 'Está aqui. Quer que eu adicione?' : 'Temos estas opções. Qual você prefere?');
+    return r;
+  }
+
+  function intencao(t) {
+    var c = contas();
+    if (/\b(finalizar|fechar|fecha o pedido|meu pedido|carrinho|concluir|terminar|so isso|e so isso|pronto)\b/.test(t)) {
+      if (!c.qtd) return { p: ['Seu pedido ainda está vazio. Me diz o que você quer, por exemplo: "quero um X-Tudo e um suco".'], quick: QUICK };
+      return { p: ['Seu pedido até agora: ' + listaPedido() + '.', resumo()], acao: 'checkout', quick: QUICK_POS };
+    }
+    if (/\b(tirar|tira|remover|remove|cancelar|cancela|diminuir|trocar|troca)\b/.test(t))
+      return { p: ['Para tirar ou trocar itens, toque em "Finalizar pedido" e use o botão de menos ao lado de cada item.'], acao: c.qtd ? 'checkout' : null, quick: QUICK };
+    if (/\b(horario|horarios|abre|abrem|fecha|fecham|aberto|aberta|funciona|funcionam|funcionamento|que horas)\b/.test(t))
+      return { p: [loja.aberta ? 'Estamos abertos agora e recebendo pedidos.' : 'Estamos fechados agora.', loja.horario ? 'Funcionamos ' + loja.horario.charAt(0).toLowerCase() + loja.horario.slice(1) + '.' : ''].filter(Boolean), quick: QUICK };
+    if (/\b(entrega|entregam|entregar|entregador|taxa|frete|delivery|demora|demorar|tempo|motoboy|retirar|retirada|buscar|bairro|chega)\b/.test(t))
+      return { p: ['A entrega custa ' + fmt(loja.taxa_entrega) + (loja.tempo_entrega ? ' e leva de ' + loja.tempo_entrega.replace(/^de /i, '') : '') + '.', 'Se preferir, você retira no balcão sem taxa' + (loja.endereco ? ', na ' + loja.endereco : '') + '.'], quick: QUICK };
+    if (/\b(pix|pagamento|pagar|paga|cartao|credito|debito|dinheiro|troco|maquininha)\b/.test(t))
+      return { p: ['Aceitamos Pix, dinheiro e cartão na maquininha.', 'No Pix, o QR Code com o valor certo aparece logo depois que você confirma o pedido. No dinheiro, é só dizer para quanto precisa de troco.'], quick: c.qtd ? QUICK_POS : QUICK };
+    if (/\b(endereco|onde fica|onde voces|localizacao|fica onde|mapa)\b/.test(t))
+      return { p: [loja.endereco ? 'Estamos na ' + loja.endereco + '.' : 'Fale com a lanchonete para saber o endereço.', loja.horario || ''].filter(Boolean), quick: QUICK };
+    if (/\b(recomenda|recomendacao|sugestao|sugere|mais pedido|mais pedidos|mais vendido|melhor|indica|indicacao|especialidade|fome)\b/.test(t)) {
+      var dest = Object.keys(ITENS).filter(function (id) { return ITENS[id].tag && ITENS[id].disponivel; });
+      if (!dest.length) dest = Object.keys(ITENS).filter(function (id) { return ITENS[id].disponivel; }).slice(0, 3);
+      return { p: ['Estes são os que mais saem por aqui:'], itens: dest, quick: QUICK };
+    }
+    var achou = null;
+    CATS.forEach(function (c) { c.k.forEach(function (k) { if ((' ' + tokens(t).join(' ') + ' ').indexOf(' ' + k + ' ') >= 0) achou = achou || c.cat; }); });
+    if (/\b(sanduiche|sanduiches|hamburguer|hamburgueres|burguer)\b/.test(t) && !achou)
+      achou = MENU.filter(function (m) { return /lanche/i.test(A.semAcento(m.nome)); })[0] || null;
+    if (achou) return { p: [achou.nome + (achou.nota ? ': ' + achou.nota : '')], itens: achou.itens.filter(function (i) { return i.disponivel; }).map(function (i) { return i.id; }), quick: QUICK };
+    if (/\b(cardapio|menu|opcoes|o que tem|o que voces tem|tem o que|vende|vendem|preco|precos|valor|valores|quanto custa)\b/.test(t))
+      return { p: ['Temos ' + MENU.map(function (m) { return m.nome.toLowerCase(); }).join(', ').replace(/, ([^,]*)$/, ' e $1') + '. Qual parte você quer ver?'], quick: MENU.map(function (m) { return m.nome; }) };
+    if (/\b(humano|pessoa|falar com|ligar|telefone|contato|whatsapp|zap)\b/.test(t) && loja.whatsapp)
+      return { p: ['Claro. Fale com a equipe pelo WhatsApp ' + A.numBonito(loja.whatsapp) + '.'], link: { href: A.linkWhats(loja.whatsapp, 'Olá! Vim pelo cardápio da ' + loja.nome + '.'), label: 'Abrir WhatsApp' }, quick: QUICK };
+    if (/\b(obrigado|obrigada|brigado|brigada|valeu|vlw|agradeco|show|top|beleza|blz|massa)\b/.test(t))
+      return { p: ['Por nada! Se precisar de mais alguma coisa, é só chamar.'], quick: c.qtd ? QUICK_POS : QUICK };
+    if (/\b(oi|ola|opa|eae|eai|e ai|bom dia|boa tarde|boa noite|tudo bem|salve)\b/.test(t))
+      return { p: ['Oi! Tudo bem? Posso te mostrar o cardápio, tirar dúvidas ou anotar seu pedido.', 'É só escrever do seu jeito, tipo "quero 2 X-Tudo e um suco".'], quick: QUICK };
+    return { p: ['Não entendi bem. Posso ajudar com o cardápio, horário, entrega, pagamento ou anotar seu pedido.', 'Tente algo como "quero um X-Bacon" ou "qual o horário?".'], quick: QUICK };
+  }
+
+  function bolha(quem, html) {
+    var d = document.createElement('div');
+    d.className = 'msg ' + quem;
+    d.innerHTML = html;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+    return d;
+  }
+  function htmlResp(r) {
+    var h = r.p.map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('');
+    if (r.itens && r.itens.length) {
+      h += '<div class="msg-items">' + r.itens.map(function (id) {
+        var i = ITENS[id], q = cart[id] || 0;
+        return '<div class="msg-item"><span><strong>' + esc(i.nome) + '</strong>' + fmt(i.preco) + (q ? ' · ' + q + ' no pedido' : '') + '</span>' +
+          (i.disponivel ? '<button type="button" data-bot="add" data-id="' + id + '" aria-label="Adicionar ' + esc(i.nome) + '">Adicionar</button>' : '<span>Esgotado</span>') + '</div>';
+      }).join('') + '</div>';
+    }
+    if (r.acao === 'checkout') h += '<button type="button" class="msg-action" data-bot="checkout">Finalizar pedido</button>';
+    if (r.link) h += '<a class="msg-action" href="' + esc(r.link.href) + '" target="_blank" rel="noopener">' + esc(r.link.label) + '</a>';
+    return h;
+  }
+  function rapidas(lista) {
+    $('chat-quick').innerHTML = (lista || QUICK).map(function (q) {
+      return '<button type="button" data-quick="' + esc(q) + '">' + esc(q) + '</button>';
+    }).join('');
+  }
+  function botDiz(r) {
+    var dig = document.createElement('div');
+    dig.className = 'typing';
+    dig.textContent = 'Atendente digitando…';
+    log.appendChild(dig);
+    log.scrollTop = log.scrollHeight;
+    setTimeout(function () {
+      dig.remove();
+      bolha('bot', htmlResp(r));
+      rapidas(r.quick);
+    }, reduz ? 0 : 450);
+  }
+  function clienteDiz(texto) {
+    texto = (texto || '').trim();
+    if (!texto || !loja) return;
+    bolha('me', '').textContent = texto;
+    botDiz(responder(texto));
+  }
+  function abrirChat() {
+    chat.hidden = false;
+    fab.hidden = true;
+    if (!boasVindas) {
+      boasVindas = true;
+      botDiz({ p: ['Oi! Sou o atendente virtual da ' + loja.nome + '.', 'Posso mostrar o cardápio, tirar dúvidas sobre entrega e pagamento ou anotar seu pedido. Escreva do seu jeito, por exemplo: "quero 2 X-Tudo e um suco".'], quick: QUICK });
+    }
+    var fino = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+    (fino ? $('chat-input') : $('chat-close')).focus();
+  }
+  function fecharChat(semFoco) {
+    chat.hidden = true;
+    fab.hidden = false;
+    if (!semFoco) fab.focus();
+  }
+  fab.addEventListener('click', abrirChat);
+  $('chat-close').addEventListener('click', function () { fecharChat(); });
+  $('chat-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var i = $('chat-input');
+    clienteDiz(i.value);
+    i.value = '';
+  });
+  chat.addEventListener('click', function (e) {
+    var q = e.target.closest('[data-quick]');
+    if (q) { clienteDiz(q.dataset.quick); return; }
+    var b = e.target.closest('[data-bot]');
+    if (!b) return;
+    if (b.dataset.bot === 'add') {
+      var id = b.dataset.id;
+      if (somar(id, 1)) {
+        atualizarTudo();
+        botDiz({ p: ['Adicionei 1x ' + ITENS[id].nome + '.', resumo()], acao: 'checkout', quick: QUICK_POS });
+      } else {
+        botDiz({ p: [ITENS[id].nome + ' está esgotado no momento.'], quick: QUICK });
+      }
+    } else if (b.dataset.bot === 'checkout') {
+      if (!contas().qtd) { botDiz({ p: ['Seu pedido ainda está vazio. Me diz o que você quer.'], quick: QUICK }); return; }
+      fecharChat(true);
+      abrirPedido();
+    }
+  });
+
+  carregar();
+})();
+</script>
+</body>
+</html>
